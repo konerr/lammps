@@ -183,6 +183,9 @@ Atom::Atom(LAMMPS *lmp) : Pointers(lmp)
 
   cc = cc_flux = nullptr;
   edpd_temp = edpd_flux = edpd_cv = nullptr;
+  emdpd_temp = emdpd_flux = emdpd_cv = nullptr;
+  phi = nullptr;
+  nw = nullptr;
 
   // MESONT package
 
@@ -513,6 +516,11 @@ void Atom::peratom_create()
   add_peratom("edpd_temp",&edpd_temp,DOUBLE,0);
   add_peratom("vest_temp",&vest_temp,DOUBLE,0);
   add_peratom("edpd_flux",&edpd_flux,DOUBLE,0,1);     // set per-thread flag
+  add_peratom("emdpd_cv",&emdpd_cv,DOUBLE,0);
+  add_peratom("emdpd_temp",&emdpd_temp,DOUBLE,0);
+  add_peratom("emdpd_flux",&emdpd_flux,DOUBLE,0,1);     // set per-thread flag
+  add_peratom("phi",&phi,DOUBLE,0);
+  add_peratom("nw",&nw,DOUBLE,1);
   add_peratom("cc",&cc,DOUBLE,1);
   add_peratom("cc_flux",&cc_flux,DOUBLE,1,1);         // set per-thread flag
 
@@ -626,7 +634,7 @@ void Atom::set_atomflag_defaults()
   vfrac_flag = spin_flag = eradius_flag = ervel_flag = erforce_flag = 0;
   cs_flag = csforce_flag = vforce_flag = ervelforce_flag = etag_flag = 0;
   rho_flag = esph_flag = cv_flag = vest_flag = 0;
-  dpd_flag = edpd_flag = tdpd_flag = 0;
+  dpd_flag = edpd_flag = tdpd_flag = emdpd_flag = 0;
   sp_flag = 0;
   x0_flag = 0;
   smd_flag = damage_flag = 0;
@@ -2725,6 +2733,7 @@ void *Atom::extract(const char *name)
   // DPD-MESO package
 
   if (strcmp(name,"edpd_temp") == 0) return (void *) edpd_temp;
+  if (strcmp(name,"emdpd_temp") == 0) return (void *) emdpd_temp;
 
   // DIELECTRIC package
 
@@ -2846,6 +2855,7 @@ int Atom::extract_datatype(const char *name)
   // DPD-MESO package
 
   if (strcmp(name,"edpd_temp") == 0) return LAMMPS_DOUBLE;
+  if (strcmp(name,"emdpd_temp") == 0) return LAMMPS_DOUBLE;
 
   // DIELECTRIC package
 

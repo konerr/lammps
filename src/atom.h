@@ -141,6 +141,10 @@ class Atom : protected Pointers {
   double *vest_temp;
   double *edpd_cv;    // heat capacity
   int cc_species;
+  double *emdpd_temp, *emdpd_flux;    // temperature and heat flux
+  double *emdpd_cv;    // heat capacity
+  double *phi;
+  double **nw;
 
   // MESONT package
 
@@ -191,7 +195,7 @@ class Atom : protected Pointers {
   int vfrac_flag, spin_flag, eradius_flag, ervel_flag, erforce_flag;
   int cs_flag, csforce_flag, vforce_flag, ervelforce_flag, etag_flag;
   int rho_flag, esph_flag, cv_flag, vest_flag;
-  int dpd_flag, edpd_flag, tdpd_flag;
+  int dpd_flag, edpd_flag, tdpd_flag, emdpd_flag;
   int mesont_flag;
 
   // SPIN package

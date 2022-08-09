@@ -49,8 +49,9 @@ enum{TYPE,TYPE_FRACTION,TYPE_RATIO,TYPE_SUBSET,
      DIPOLE,DIPOLE_RANDOM,SPIN,SPIN_RANDOM,QUAT,QUAT_RANDOM,
      THETA,THETA_RANDOM,ANGMOM,OMEGA,
      DIAMETER,DENSITY,VOLUME,IMAGE,BOND,ANGLE,DIHEDRAL,IMPROPER,
-     SPH_E,SPH_CV,SPH_RHO,EDPD_TEMP,EDPD_CV,CC,SMD_MASS_DENSITY,
-     SMD_CONTACT_RADIUS,DPDTHETA,EPSILON,IVEC,DVEC,IARRAY,DARRAY};
+     SPH_E,SPH_CV,SPH_RHO,EDPD_TEMP,EDPD_CV,EMDPD_TEMP,EMDPD_CV,CC,
+     SMD_MASS_DENSITY,SMD_CONTACT_RADIUS,DPDTHETA,EPSILON,
+     IVEC,DVEC,IARRAY,DARRAY};
 
 #define BIG INT_MAX
 
@@ -522,6 +523,32 @@ void Set::command(int narg, char **arg)
       set(EDPD_CV);
       iarg += 2;
 
+    } else if (strcmp(arg[iarg],"emdpd/temp") == 0) {
+      if (iarg+2 > narg) error->all(FLERR,"Illegal set command");
+      if (strcmp(arg[iarg+1],"NULL") == 0) dvalue = -1.0;
+      else if (utils::strmatch(arg[iarg+1],"^v_")) varparse(arg[iarg+1],1);
+      else {
+        dvalue = utils::numeric(FLERR,arg[iarg+1],false,lmp);
+        if (dvalue < 0.0) error->all(FLERR,"Illegal set command");
+      }
+      if (!atom->emdpd_flag)
+        error->all(FLERR,"Cannot set emdpd/temp for this atom style");
+      set(EMDPD_TEMP);
+      iarg += 2;
+
+    } else if (strcmp(arg[iarg],"emdpd/cv") == 0) {
+      if (iarg+2 > narg) error->all(FLERR,"Illegal set command");
+      if (strcmp(arg[iarg+1],"NULL") == 0) dvalue = -1.0;
+      else if (utils::strmatch(arg[iarg+1],"^v_")) varparse(arg[iarg+1],1);
+      else {
+        dvalue = utils::numeric(FLERR,arg[iarg+1],false,lmp);
+        if (dvalue < 0.0) error->all(FLERR,"Illegal set command");
+      }
+      if (!atom->emdpd_flag)
+        error->all(FLERR,"Cannot set emdpd/cv for this atom style");
+      set(EMDPD_CV);
+      iarg += 2;
+
     } else if (strcmp(arg[iarg],"cc") == 0) {
       if (iarg+3 > narg) error->all(FLERR,"Illegal set command");
       if (strcmp(arg[iarg+1],"NULL") == 0) dvalue = -1.0;
@@ -836,6 +863,8 @@ void Set::set(int keyword)
 
     else if (keyword == EDPD_TEMP) atom->edpd_temp[i] = dvalue;
     else if (keyword == EDPD_CV) atom->edpd_cv[i] = dvalue;
+    else if (keyword == EMDPD_TEMP) atom->emdpd_temp[i] = dvalue;
+    else if (keyword == EMDPD_CV) atom->emdpd_cv[i] = dvalue;
     else if (keyword == CC) atom->cc[i][cc_index-1] = dvalue;
 
     else if (keyword == SMD_MASS_DENSITY) {
