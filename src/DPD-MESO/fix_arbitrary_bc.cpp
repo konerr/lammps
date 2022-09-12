@@ -88,7 +88,7 @@ FixArbitraryBc::FixArbitraryBc(LAMMPS *lmp, int narg, char **arg) :
   dw_factor = -315.0 / (4.0 * const_pi * rho_wall *rc_7);
 
   emdpd = NULL;
-  comm_reverse = 1;
+  comm_reverse = 5;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -207,7 +207,7 @@ void FixArbitraryBc::post_integrate()
     }
   }
   /* if (newton_pair) comm->reverse_comm_fix_variable(this); */ 
-  if (newton_pair) comm->reverse_comm_variable(this); 
+  if (newton_pair) comm->reverse_comm(this); 
  
   for (i = 0; i < nlocal; i++)
   if ( (mask[i] & groupbit) && phi[i] > phi_c) {

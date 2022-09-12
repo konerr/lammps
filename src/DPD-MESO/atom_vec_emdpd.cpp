@@ -41,7 +41,7 @@ AtomVecEMDPD::AtomVecEMDPD(LAMMPS *lmp) : AtomVec(lmp)
   fields_grow = {"emdpd_cv", "emdpd_temp", "emdpd_flux", "vest", "vest_temp", "rho", "phi", "nw"};
   fields_copy = {"emdpd_cv", "emdpd_temp", "emdpd_flux", "vest", "vest_temp", "rho", "phi", "nw"};
   fields_comm = {"emdpd_temp", "vest", "vest_temp", "rho", "phi", "nw"};
-  fields_comm_vel = {"emdpd_temp", "vest", "vest_temp"};
+  fields_comm_vel = {"emdpd_temp", "vest", "vest_temp", "rho", "phi", "nw"};
   fields_reverse = {"emdpd_flux"};
   fields_border = {"emdpd_cv", "emdpd_temp", "vest", "vest_temp", "rho", "phi", "nw"};
   fields_border_vel = {"emdpd_cv", "emdpd_temp", "vest", "vest_temp", "rho", "phi", "nw"};
