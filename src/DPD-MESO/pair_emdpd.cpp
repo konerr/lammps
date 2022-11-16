@@ -90,6 +90,7 @@ PairEMDPD::~PairEMDPD()
   }
   if (power_flag) memory->destroy(sc);
   if (kappa_flag) memory->destroy(kc);
+  if (att_flag) memory->destroy(ac);
 
   if (random) delete random;
   if (randomT) delete randomT;
@@ -175,6 +176,14 @@ void PairEMDPD::compute(int eflag, int vflag)
           power_d *= factor;
         }
 
+        double A_att_T = A_att[itype][jtype];
+        if (att_flag) {
+          double factor = 1.0;
+          for (int k = 0; k < 4; k++)
+            factor += ac[itype][jtype][k]*T_pow[k];
+          A_att_T *= factor;
+        }
+
         power_d = MAX(0.01,power_d);
         double wc = 1.0 - r/cut[itype][jtype];
         wc = MAX(0.0,MIN(1.0,wc));
@@ -196,7 +205,7 @@ void PairEMDPD::compute(int eflag, int vflag)
         SigmaIJ *= sqrt(ratio);
         GammaIJ *= ratio;
 
-        double fpair =  A_att[itype][jtype]*T_ij*wc + B_rep[itype][jtype]*(rhoi+rhoj)*wc_r;
+        double fpair =  A_att_T*T_ij*wc + B_rep[itype][jtype]*(rhoi+rhoj)*wc_r;
         fpair -= GammaIJ *wr*wr *dot*rinv;
         fpair += SigmaIJ * wr *randnum * dtinvsqrt;
         fpair *= factor_dpd*rinv;
@@ -225,10 +234,60 @@ void PairEMDPD::compute(int eflag, int vflag)
           double kij = cv[i]*cv[j]*kappaT * T_ij*T_ij;
           double alphaij = sqrt(2.0*kboltz*kij);
 
+          SigmaIJ /= sqrt(ratio);
+          GammaIJ /= ratio;
+
+          /* kij *= ratio; */
+          /* alphaij *= sqrt(ratio); */
+
           dQc  = kij * wrT*wrT * ( T[j] - T[i] )/(T[i]*T[j]);
           dQd  = wr*wr*( GammaIJ * vijeij*vijeij - SigmaIJ*SigmaIJ/mass[itype] ) - SigmaIJ * wr *vijeij *randnum;
           dQd /= (cv[i]+cv[j]);
           dQr  = alphaij * wrT * dtinvsqrt * randnumT;
+          
+          /* Eq. 21 and 23 from the eDPD paper */
+          /* if(itype != flag_wall && jtype == flag_wall) { */
+          /*   phi[i] = phi[i] < 0.5 ? phi[i] : 0.5; */ 
+  
+          /*   double h = 1 - pow(2.088*phi[i]*phi[i]*phi[i] + 1.478*phi[i], 0.25); */
+          /*   h = h > 0.025 ? h : 0.025; */
+          /*   h *= cut[itype][jtype]; */
+          /*   h /= cutT[itype][jtype]; */
+
+          /*   /1* double phiTemp = (1+4.1517*(h/cut[itype][jtype])+7.1697*(h/cut[itype][jtype])*(h/cut[itype][jtype]) ); *1/ */
+          /*   /1* phiTemp *= pow((1-h/cut[itype][jtype]), 4.09); *1/ */
+          /*   /1* phiTemp *= 4.9562e-2/h; *1/ */
+          /*   if (h < 1.0) { */
+          /*     double phiTemp = 166991.6 - 443450.04*h + 203757.83*h*h + 279637.07*h*h*h - 207737.81*h*h*h*h; */ 
+
+          /*     dQc = phiTemp*(T[i] + T[j])*(T[i] + T[j])*( T[j] - T[i] )/(T[i]*T[j]); */
+          /*     dQr = sqrt(2*kboltz*phiTemp)*(T[i] + T[j])*randnumT; */
+          /*   } */
+          /* } */  
+          /* else if(jtype != flag_wall && itype == flag_wall){ */
+          /*   phi[j] = phi[j] < 0.5 ? phi[j] : 0.5; */ 
+  
+          /*   double h = 1 - pow(2.088*phi[j]*phi[j]*phi[j] + 1.478*phi[j], 0.25); */
+          /*   h = h > 0.025 ? h : 0.025; */
+          /*   h *= cut[itype][jtype]; */
+          /*   h /= cutT[itype][jtype]; */
+
+          /*   /1* double phiTemp = (1+4.1517*(h/cut[itype][jtype])+7.1697*(h/cut[itype][jtype])*(h/cut[itype][jtype]) ); *1/ */
+          /*   /1* phiTemp *= pow((1-h/cut[itype][jtype]), 4.09); *1/ */
+          /*   /1* phiTemp *= 4.9562e-2/h; *1/ */
+          /*   if (h < 1.0) { */
+          /*     double phiTemp = 166991.6 - 443450.04*h + 203757.83*h*h + 279637.07*h*h*h - 207737.81*h*h*h*h; */ 
+
+          /*     dQc = phiTemp*(T[i] + T[j])*(T[i] + T[j])*( T[i] - T[j] )/(T[i]*T[j]); */
+          /*     dQr = sqrt(2*kboltz*phiTemp)*(T[i] + T[j])*randnumT; */
+          /*     /1* printf("Wall cont:%d, %f, %f\n", i, dQc, dQr ); *1/ */
+          /*   } */
+          /* } */  
+   
+          /* printf("fluid:%d, %f, %f\n", i, dQc, dQr ); */
+          dQc *= 0.0;
+          dQd *= 0.0;
+          dQr *= 0.0;
           Q[i] += (dQc + dQd + dQr );
         }
         //-----------------------------------------------------------
@@ -342,8 +401,8 @@ void PairEMDPD::coeff(int narg, char **arg)
   if (cut_one < cut_two) error->all(FLERR,"Incorrect args for pair coefficients\n cutA should be larger than cutB.");
 
   int iarg = 11;
-  power_flag = kappa_flag = 0;
-  double sc_one[4], kc_one[4];
+  power_flag = kappa_flag = att_flag = 0;
+  double sc_one[4], kc_one[4], ac_one[4];
   int n = atom->ntypes;
   while (iarg < narg) {
     if (strcmp(arg[iarg],"power") == 0) {
@@ -360,6 +419,13 @@ void PairEMDPD::coeff(int narg, char **arg)
       iarg += 5;
       kappa_flag = 1;
       memory->create(kc,n+1,n+1,4,"pair:kc");
+    } else if (strcmp(arg[iarg],"att") == 0) {
+      if (iarg+5 > narg) error->all(FLERR,"Illegal pair emdpd coefficients");
+      for (int i = 0; i < 4; i++)
+        ac_one[i] = utils::numeric(FLERR,arg[iarg+i+1],false,lmp);
+      iarg += 5;
+      att_flag = 1;
+      memory->create(ac,n+1,n+1,4,"pair:ac");
     } else error->all(FLERR,"Illegal pair emdpd coefficients");
   }
 
@@ -383,6 +449,10 @@ void PairEMDPD::coeff(int narg, char **arg)
     if (kappa_flag)
     for (int k = 0; k < 4; k++)
       kc[i][j][k] = kc_one[k];
+
+    if (att_flag)
+    for (int k = 0; k < 4; k++)
+      ac[i][j][k] = ac_one[k];
 
     setflag[i][j] = 1;
     count++;
@@ -438,6 +508,10 @@ double PairEMDPD::init_one(int i, int j)
   for (int k = 0; k < 4; k++)
     kc[j][i][k] = kc[i][j][k];
 
+  if (att_flag)
+  for (int k = 0; k < 4; k++)
+    ac[j][i][k] = ac[i][j][k];
+
   return cut[i][j];
 }
 
@@ -469,6 +543,10 @@ void PairEMDPD::write_restart(FILE *fp)
       if (kappa_flag)
       for (int k = 0; k < 4; k++)
         fwrite(&kc[i][j][k],sizeof(double),1,fp);
+
+      if (att_flag)
+      for (int k = 0; k < 4; k++)
+        fwrite(&ac[i][j][k],sizeof(double),1,fp);
     }
   }
 }
@@ -506,6 +584,10 @@ void PairEMDPD::read_restart(FILE *fp)
           if (kappa_flag)
           for (int k = 0; k < 4; k++)
             utils::sfread(FLERR,&kc[i][j][k],sizeof(double),1,fp,nullptr,error);
+
+          if (att_flag)
+          for (int k = 0; k < 4; k++)
+            utils::sfread(FLERR,&ac[i][j][k],sizeof(double),1,fp,nullptr,error);
         }
         MPI_Bcast(&A_att[i][j],1,MPI_DOUBLE,0,world);
         MPI_Bcast(&B_rep[i][j],1,MPI_DOUBLE,0,world);
@@ -523,6 +605,10 @@ void PairEMDPD::read_restart(FILE *fp)
         if (kappa_flag)
         for (int k = 0; k < 4; k++)
           MPI_Bcast(&kc[i][j][k],1,MPI_DOUBLE,0,world);
+
+        if (att_flag)
+        for (int k = 0; k < 4; k++)
+          MPI_Bcast(&ac[i][j][k],1,MPI_DOUBLE,0,world);
       }
     }
 }

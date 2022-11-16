@@ -48,8 +48,8 @@ class PairEMDPD : public Pair {
   double **slope;
   double **kappa;
   double **powerT;
-  int power_flag, kappa_flag;
-  double ***sc, ***kc;
+  int power_flag, kappa_flag, att_flag;
+  double ***sc, ***kc, ***ac;
   int flag_wall;
   class RanMars *random;
   class RanMars *randomT;

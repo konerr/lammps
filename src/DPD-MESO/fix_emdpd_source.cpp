@@ -35,6 +35,7 @@ FixEMDPDSource::FixEMDPDSource(LAMMPS *lmp, int narg, char **arg) :
 
   if (strcmp(arg[iarg],"sphere") == 0) option = 0;
   else if (strcmp(arg[iarg],"cuboid") == 0) option = 1;
+  else if (strcmp(arg[iarg],"gradient") == 0) option = 2;
   else error->all(FLERR,"Illegal fix emdpd/source command");
   iarg++;
 
@@ -47,6 +48,16 @@ FixEMDPDSource::FixEMDPDSource(LAMMPS *lmp, int narg, char **arg) :
     value   = utils::numeric(FLERR,arg[iarg++],false,lmp);
   }
   else if (option == 1) {
+    if (narg != 11 ) error->all(FLERR,"Illegal fix emdpd/emdpd command (7 args for cuboid)");
+    center[0] = utils::numeric(FLERR,arg[iarg++],false,lmp);
+    center[1] = utils::numeric(FLERR,arg[iarg++],false,lmp);
+    center[2] = utils::numeric(FLERR,arg[iarg++],false,lmp);
+    dLx = utils::numeric(FLERR,arg[iarg++],false,lmp);
+    dLy = utils::numeric(FLERR,arg[iarg++],false,lmp);
+    dLz = utils::numeric(FLERR,arg[iarg++],false,lmp);
+    value = utils::numeric(FLERR,arg[iarg++],false,lmp);
+  }
+  else if (option == 2) {
     if (narg != 11 ) error->all(FLERR,"Illegal fix emdpd/emdpd command (7 args for cuboid)");
     center[0] = utils::numeric(FLERR,arg[iarg++],false,lmp);
     center[1] = utils::numeric(FLERR,arg[iarg++],false,lmp);
@@ -81,6 +92,7 @@ void FixEMDPDSource::post_force(int /*vflag*/)
   double **x = atom->x;
   double *emdpd_flux = atom->emdpd_flux;
   double *emdpd_cv = atom->emdpd_cv;
+  double *emdpd_temp = atom->emdpd_temp;
   int *mask = atom->mask;
   int nlocal = atom->nlocal;
 
@@ -103,6 +115,13 @@ void FixEMDPDSource::post_force(int /*vflag*/)
         drz = x[i][2] - center[2];
         if (fabs(drx) <= 0.5*dLx && fabs(dry) <= 0.5*dLy && fabs(drz) <= 0.5*dLz)
           emdpd_flux[i] += value*emdpd_cv[i];
+      }
+      else if (option == 2) {
+        drx = x[i][0]; // - center[0];
+        dry = x[i][1]; // - center[1];
+        drz = x[i][2]; // - center[2];
+        if (fabs(dry) <= dLy && fabs(drz) <= dLz)
+          emdpd_temp[i] = value*(drx-center[0]) + center[1];
       }
     }
   }

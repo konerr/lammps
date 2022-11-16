@@ -520,7 +520,7 @@ void Atom::peratom_create()
   add_peratom("emdpd_temp",&emdpd_temp,DOUBLE,0);
   add_peratom("emdpd_flux",&emdpd_flux,DOUBLE,0,1);     // set per-thread flag
   add_peratom("phi",&phi,DOUBLE,0);
-  add_peratom("nw",&nw,DOUBLE,1);
+  add_peratom("nw",&nw,DOUBLE,3);
   add_peratom("cc",&cc,DOUBLE,1);
   add_peratom("cc_flux",&cc_flux,DOUBLE,1,1);         // set per-thread flag
 
