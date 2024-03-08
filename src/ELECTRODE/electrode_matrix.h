@@ -1,7 +1,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -30,6 +30,7 @@ class ElectrodeMatrix : protected Pointers {
   ElectrodeMatrix(class LAMMPS *, int, double);
   void setup(const std::unordered_map<tagint, int> &, class Pair *, class NeighList *);
   void setup_tf(const std::map<int, double> &);
+  void setup_eta(int);
   void compute_array(double **, bool);
   int igroup;
 
@@ -39,6 +40,8 @@ class ElectrodeMatrix : protected Pointers {
   double **cutsq;
   double g_ewald, eta;
   bool tfflag;
+  bool etaflag;
+  int eta_index;
   std::map<int, double> tf_types;
   std::unordered_map<tagint, int> tag_to_iele;
   bool assigned;

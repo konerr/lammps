@@ -2,7 +2,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -34,6 +34,7 @@
 #include "group.h"
 #include "improper.h"
 #include "input.h"
+#include "lmpfftsettings.h"
 #include "modify.h"
 #include "neighbor.h"
 #include "output.h"
@@ -63,7 +64,9 @@
 #endif
 
 #if defined(__linux__)
+#include <features.h>
 #include <malloc.h>
+#include <sys/types.h>
 #endif
 
 namespace LAMMPS_NS {
@@ -95,6 +98,7 @@ enum {COMPUTES=1<<0,
       DUMP_STYLES=1<<24,
       COMMAND_STYLES=1<<25,
       ACCELERATOR=1<<26,
+      FFT=1<<27,
       ALL=~0};
 
 static const int STYLES = ATOM_STYLES | INTEGRATE_STYLES | MINIMIZE_STYLES
@@ -165,16 +169,16 @@ void Info::command(int narg, char **arg)
       if ((out != screen) && (out != logfile)) fclose(out);
       out = fopen(arg[idx+2],"w");
       idx += 3;
-    } else if (strncmp(arg[idx],"communication",5) == 0) {
+    } else if (strncmp(arg[idx],"communication",4) == 0) {
       flags |= COMM;
       ++idx;
-    } else if (strncmp(arg[idx],"computes",5) == 0) {
+    } else if (strncmp(arg[idx],"computes",4) == 0) {
       flags |= COMPUTES;
       ++idx;
-    } else if (strncmp(arg[idx],"dumps",5) == 0) {
+    } else if (strncmp(arg[idx],"dumps",3) == 0) {
       flags |= DUMPS;
       ++idx;
-    } else if (strncmp(arg[idx],"fixes",5) == 0) {
+    } else if (strncmp(arg[idx],"fixes",3) == 0) {
       flags |= FIXES;
       ++idx;
     } else if (strncmp(arg[idx],"groups",3) == 0) {
@@ -203,6 +207,9 @@ void Info::command(int narg, char **arg)
       ++idx;
     } else if (strncmp(arg[idx],"accelerator",3) == 0) {
       flags |= ACCELERATOR;
+      ++idx;
+    } else if (strncmp(arg[idx],"fft",3) == 0) {
+      flags |= FFT;
       ++idx;
     } else if (strncmp(arg[idx],"styles",3) == 0) {
       if (idx+1 < narg) {
@@ -296,7 +303,6 @@ void Info::command(int narg, char **arg)
     if (has_jpeg_support()) fputs("-DLAMMPS_JPEG\n",out);
     if (has_ffmpeg_support()) fputs("-DLAMMPS_FFMPEG\n",out);
     if (has_fft_single_support()) fputs("-DFFT_SINGLE\n",out);
-    if (has_exceptions()) fputs("-DLAMMPS_EXCEPTIONS\n",out);
 
 #if defined(LAMMPS_BIGBIG)
     fputs("-DLAMMPS_BIGBIG\n",out);
@@ -399,10 +405,15 @@ void Info::command(int narg, char **arg)
                  comm->procgrid[1], comm->procgrid[2]);
   }
 
+  if (flags & FFT) {
+    fputs("\nFFT information:\n",out);
+    fputs(get_fft_info().c_str(),out);
+  }
+
   if (flags & SYSTEM) {
     fputs("\nSystem information:\n",out);
     fmt::print(out,"Units         = {}\n", update->unit_style);
-    fmt::print(out,"Atom style    = {}\n", atom->atom_style);
+    fmt::print(out,"Atom style    = {}\n", atom->get_style());
     fmt::print(out,"Atom map      = {}\n", mapstyles[atom->map_style]);
     if (atom->molecular != Atom::ATOMIC) {
       const char *msg;
@@ -600,23 +611,10 @@ void Info::command(int narg, char **arg)
 
   if (flags & VARIABLES) {
     int nvar = input->variable->nvar;
-    int *style = input->variable->style;
-    char **names = input->variable->names;
-    char ***data = input->variable->data;
     fputs("\nVariable information:\n",out);
     for (int i=0; i < nvar; ++i) {
-      int ndata = 1;
-      fmt::print(out,"Variable[{:3d}]: {:16}  style = {:16}  def =",
-                 i,std::string(names[i])+',',std::string(varstyles[style[i]])+',');
-      if (style[i] == Variable::INTERNAL) {
-        fmt::print(out,"{:.8}\n",input->variable->dvalue[i]);
-        continue;
-      }
-      if ((style[i] != Variable::LOOP) && (style[i] != Variable::ULOOP))
-        ndata = input->variable->num[i];
-      for (int j=0; j < ndata; ++j)
-        if (data[i][j]) fmt::print(out," {}",data[i][j]);
-      fputs("\n",out);
+      auto vinfo = get_variable_info(i);
+      fmt::print(out, get_variable_info(i));
     }
   }
 
@@ -887,42 +885,17 @@ bool Info::is_defined(const char *category, const char *name)
   if ((category == nullptr) || (name == nullptr)) return false;
 
   if (strcmp(category,"compute") == 0) {
-    int ncompute = modify->ncompute;
-    Compute **compute = modify->compute;
-    for (int i=0; i < ncompute; ++i) {
-      if (strcmp(compute[i]->id,name) == 0)
-        return true;
-    }
+    if (modify->get_compute_by_id(name)) return true;
   } else if (strcmp(category,"dump") == 0) {
-    int ndump = output->ndump;
-    Dump **dump = output->dump;
-    for (int i=0; i < ndump; ++i) {
-      if (strcmp(dump[i]->id,name) == 0)
-        return true;
-    }
+    if (output->get_dump_by_id(name)) return true;
   } else if (strcmp(category,"fix") == 0) {
-    for (const auto &fix : modify->get_fix_list()) {
-      if (strcmp(fix->id,name) == 0)
-        return true;
-    }
+    if (modify->get_fix_by_id(name)) return true;
   } else if (strcmp(category,"group") == 0) {
-    int ngroup = group->ngroup;
-    char **names = group->names;
-    for (int i=0; i < ngroup; ++i) {
-      if (strcmp(names[i],name) == 0)
-        return true;
-    }
+    if (group->find(name) >= 0) return true;
   } else if (strcmp(category,"region") == 0) {
-    for (auto &reg : domain->get_region_list())
-      if (strcmp(reg->id,name) == 0) return true;
+    if (domain->get_region_by_id(name)) return true;
   } else if (strcmp(category,"variable") == 0) {
-    int nvar = input->variable->nvar;
-    char **names = input->variable->names;
-
-    for (int i=0; i < nvar; ++i) {
-      if (strcmp(names[i],name) == 0)
-        return true;
-    }
+    if (input->variable->find(name) >= 0) return true;
   } else error->all(FLERR,"Unknown category for info is_defined(): {}", category);
 
   return false;
@@ -1119,11 +1092,7 @@ bool Info::has_fft_single_support() {
 }
 
 bool Info::has_exceptions() {
-#ifdef LAMMPS_EXCEPTIONS
   return true;
-#else
-  return false;
-#endif
 }
 
 bool Info::has_package(const std::string &package_name) {
@@ -1210,11 +1179,10 @@ bool Info::has_accelerator_feature(const std::string &package,
     }
     if (category == "api") {
 #if defined(_OPENMP)
-      if (setting == "openmp") return true;
+      return setting == "openmp";
 #else
-      if (setting == "serial") return true;
+      return setting == "serial";
 #endif
-      return false;
     }
   }
 #endif
@@ -1223,7 +1191,7 @@ bool Info::has_accelerator_feature(const std::string &package,
     if (category == "precision") {
       if (setting == "double") return true;
       else if (setting == "mixed") return true;
-      else if (setting == "single")return true;
+      else if (setting == "single") return true;
       else return false;
     }
     if (category == "api") {
@@ -1240,6 +1208,10 @@ bool Info::has_accelerator_feature(const std::string &package,
 #endif
   return false;
 }
+
+#if defined(LMP_INTEL)
+#include "intel_preprocess.h"
+#endif
 
 std::string Info::get_accelerator_info(const std::string &package)
 {
@@ -1267,6 +1239,10 @@ std::string Info::get_accelerator_info(const std::string &package)
     if (has_accelerator_feature("KOKKOS","precision","single")) mesg += " single";
     if (has_accelerator_feature("KOKKOS","precision","mixed"))  mesg += " mixed";
     if (has_accelerator_feature("KOKKOS","precision","double")) mesg += " double";
+#if LMP_KOKKOS
+    mesg += fmt::format("\nKokkos library version: {}.{}.{}", KOKKOS_VERSION / 10000,
+                       (KOKKOS_VERSION % 10000) / 100, KOKKOS_VERSION % 100);
+#endif
     mesg += "\n";
   }
   if ((package.empty() || (package == "OPENMP")) && has_package("OPENMP")) {
@@ -1277,6 +1253,9 @@ std::string Info::get_accelerator_info(const std::string &package)
     if (has_accelerator_feature("OPENMP","precision","single")) mesg += " single";
     if (has_accelerator_feature("OPENMP","precision","mixed"))  mesg += " mixed";
     if (has_accelerator_feature("OPENMP","precision","double")) mesg += " double";
+#if defined(_OPENMP)
+    mesg += "\nOpenMP standard: " + platform::openmp_standard();
+#endif
     mesg += "\n";
   }
   if ((package.empty() || (package == "INTEL")) && has_package("INTEL")) {
@@ -1287,9 +1266,76 @@ std::string Info::get_accelerator_info(const std::string &package)
     if (has_accelerator_feature("INTEL","precision","single")) mesg += " single";
     if (has_accelerator_feature("INTEL","precision","mixed"))  mesg += " mixed";
     if (has_accelerator_feature("INTEL","precision","double")) mesg += " double";
+#if defined(LMP_SIMD_COMPILER)
+    mesg += "\nINTEL package SIMD: enabled";
+#else
+    mesg += "\nINTEL package SIMD: not enabled";
+#endif
     mesg += "\n";
   }
   return mesg;
+}
+
+/* ---------------------------------------------------------------------- */
+
+std::string Info::get_fft_info()
+{
+  std::string fft_info;
+#if defined(FFT_SINGLE)
+  fft_info = "FFT precision  = single\n";
+#else
+  fft_info = "FFT precision  = double\n";
+#endif
+#if defined(FFT_HEFFTE)
+  fft_info += "FFT engine  = HeFFTe\n";
+#if defined(FFT_HEFFTE_MKL)
+  fft_info += "FFT library = MKL\n";
+#elif defined(FFT_HEFFTE_FFTW)
+  fft_info += "FFT library = FFTW\n";
+#else
+  fft_info += "FFT library = (builtin)\n";
+#endif
+#else
+  fft_info += "FFT engine  = mpiFFT\n";
+#if defined(FFT_MKL)
+#if defined(FFT_MKL_THREADS)
+  fft_info += "FFT library = MKL with threads\n";
+#else
+  fft_info += "FFT library = MKL\n";
+#endif
+#elif defined(FFT_FFTW3)
+#if defined(FFT_FFTW_THREADS)
+  fft_info += "FFT library = FFTW3 with threads\n";
+#else
+  fft_info += "FFT library = FFTW3\n";
+#endif
+#else
+  fft_info += "FFT library = KISS\n";
+#endif
+#endif
+#if defined(LMP_KOKKOS)
+  fft_info += "KOKKOS FFT engine  = mpiFFT\n";
+#if defined(FFT_KOKKOS_CUFFT)
+  fft_info += "KOKKOS FFT library = cuFFT\n";
+#elif defined(FFT_KOKKOS_HIPFFT)
+  fft_info += "KOKKOS FFT library = hipFFT\n";
+#elif defined(FFT_KOKKOS_FFTW3)
+#if defined(FFT_KOKKOS_FFTW_THREADS)
+  fft_info += "KOKKOS FFT library = FFTW3 with threads\n";
+#else
+  fft_info += "KOKKOS FFT library = FFTW3\n";
+#endif
+#elif defined(FFT_KOKKOS_MKL)
+#if defined(FFT_KOKKOS_MKL_THREADS)
+  fft_info += "KOKKOS FFT library = MKL with threads\n";
+#else
+  fft_info += "KOKKOS FFT library = MKL\n";
+#endif
+#else
+  fft_info += "KOKKOS FFT library = KISS\n";
+#endif
+#endif
+  return fft_info;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -1317,6 +1363,9 @@ void Info::get_memory_info(double *meminfo)
   meminfo[2] = (double)pmc.PeakWorkingSetSize/1048576.0;
 #else
 #if defined(__linux__)
+// __GLIBC_MINOR__ is only defined on real glibc (i.e. not on musl)
+#if defined(__GLIBC_MINOR__)
+// newer glibc versions have mallinfo2
 #if defined(__GLIBC__) && __GLIBC_PREREQ(2, 33)
   struct mallinfo2 mi;
   mi = mallinfo2();
@@ -1325,6 +1374,10 @@ void Info::get_memory_info(double *meminfo)
   mi = mallinfo();
 #endif
   meminfo[1] = (double)mi.uordblks/1048576.0+(double)mi.hblkhd/1048576.0;
+#endif
+// not glibc => may not have mallinfo/mallinfo2
+#else
+  meminfo[1] = 0.0;
 #endif
   struct rusage ru;
   if (getrusage(RUSAGE_SELF, &ru) == 0)
@@ -1337,4 +1390,30 @@ void Info::get_memory_info(double *meminfo)
 char **Info::get_variable_names(int &num) {
   num = input->variable->nvar;
   return input->variable->names;
+}
+
+/* ---------------------------------------------------------------------- */
+
+std::string Info::get_variable_info(int num) {
+  int *style = input->variable->style;
+  char **names = input->variable->names;
+  char ***data = input->variable->data;
+  std::string text;
+  int ndata = 1;
+  text = fmt::format("Variable[{:3d}]: {:16}  style = {:16}  def =", num,
+                     std::string(names[num]) + ',', std::string(varstyles[style[num]]) + ',');
+  if (style[num] == Variable::INTERNAL) {
+    text += fmt::format("{:.8}\n",input->variable->dvalue[num]);
+    return text;
+  }
+
+  if ((style[num] != Variable::LOOP) && (style[num] != Variable::ULOOP))
+    ndata = input->variable->num[num];
+  else
+    input->variable->retrieve(names[num]);
+
+  for (int j=0; j < ndata; ++j)
+    if (data[num][j]) text += fmt::format(" {}",data[num][j]);
+  text += "\n";
+  return text;
 }

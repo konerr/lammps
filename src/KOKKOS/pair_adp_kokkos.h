@@ -1,7 +1,7 @@
 /* -*- c++ -*- ----------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -108,7 +108,7 @@ class PairADPKokkos : public PairADP, public KokkosBase
       const F_FLOAT &epair, const F_FLOAT &fx, const F_FLOAT &fy, const F_FLOAT &fz, const F_FLOAT &delx,
                   const F_FLOAT &dely, const F_FLOAT &delz) const;
 
-  int pack_forward_comm_kokkos(int, DAT::tdual_int_2d, int, DAT::tdual_xfloat_1d&,
+  int pack_forward_comm_kokkos(int, DAT::tdual_int_1d, DAT::tdual_xfloat_1d&,
                        int, int *) override;
   void unpack_forward_comm_kokkos(int, int, DAT::tdual_xfloat_1d&) override;
   int pack_forward_comm(int, int *, double *, int, int *) override;
@@ -120,7 +120,6 @@ class PairADPKokkos : public PairADP, public KokkosBase
   typename AT::t_x_array x;
   typename AT::t_f_array f;
   typename AT::t_int_1d type;
-  typename AT::t_tagint_1d tag;
 
   DAT::tdual_efloat_1d k_eatom;
   DAT::tdual_virial_array k_vatom;
@@ -186,9 +185,8 @@ class PairADPKokkos : public PairADP, public KokkosBase
   typename AT::t_int_1d d_ilist;
   typename AT::t_int_1d d_numneigh;
 
-  int iswap;
   int first;
-  typename AT::t_int_2d d_sendlist;
+  typename AT::t_int_1d d_sendlist;
   typename AT::t_xfloat_1d_um v_buf;
 
   int neighflag,newton_pair;

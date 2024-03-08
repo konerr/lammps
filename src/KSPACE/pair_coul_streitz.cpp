@@ -2,7 +2,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -35,9 +35,8 @@
 using namespace LAMMPS_NS;
 using namespace MathConst;
 
-#define DELTA 4
-#define PGDELTA 1
-#define MAXNEIGH 24
+static constexpr int DELTA = 4;
+static constexpr int MAXNEIGH = 24;
 
 /* ---------------------------------------------------------------------- */
 
@@ -146,7 +145,7 @@ void PairCoulStreitz::init_style()
 
   cut_coulsq = cut_coul * cut_coul;
 
-  // insure use of KSpace long-range solver when ewald specified, set g_ewald
+  // ensure use of KSpace long-range solver when ewald specified, set g_ewald
 
   if (ewaldflag) {
     if (force->kspace == nullptr)
@@ -253,11 +252,11 @@ void PairCoulStreitz::setup_params()
     n = -1;
     for (m = 0; m < nparams; m++) {
       if (i == params[m].ielement) {
-        if (n >= 0) error->all(FLERR,"Potential file has duplicate entry");
+        if (n >= 0) error->all(FLERR,"Potential file has duplicate entry for: {}", elements[i]);
         n = m;
       }
     }
-    if (n < 0) error->all(FLERR,"Potential file is missing an entry");
+    if (n < 0) error->all(FLERR,"Potential file is missing an entry for: {}", elements[i]);
     elem1param[i] = n;
   }
 

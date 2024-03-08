@@ -3,7 +3,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -14,14 +14,10 @@
 ------------------------------------------------------------------------- */
 
 #include "pair_hybrid_kokkos.h"
-#include <cstring>
+
 #include "atom_kokkos.h"
 #include "force.h"
-#include "pair.h"
-#include "neighbor.h"
-#include "neigh_request.h"
 #include "update.h"
-#include "memory_kokkos.h"
 #include "respa.h"
 #include "atom_masks.h"
 #include "kokkos.h"
@@ -41,6 +37,19 @@ PairHybridKokkos::PairHybridKokkos(LAMMPS *lmp) : PairHybrid(lmp)
 
   datamask_read = EMPTY_MASK;
   datamask_modify = EMPTY_MASK;
+}
+
+/* ----------------------------------------------------------------------
+   init specific to this pair style
+------------------------------------------------------------------------- */
+
+void PairHybridKokkos::init_style()
+{
+  PairHybrid::init_style();
+
+  for (int m = 0; m < nstyles; m++)
+    if (styles[m]->execution_space == Host)
+      lmp->kokkos->allow_overlap = 0;
 }
 
 /* ----------------------------------------------------------------------
@@ -157,7 +166,6 @@ void PairHybridKokkos::compute(int eflag, int vflag)
         }
       }
     }
-
   }
 
   delete [] saved_special;

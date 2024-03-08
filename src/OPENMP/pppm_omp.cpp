@@ -2,7 +2,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -38,13 +38,8 @@ using namespace LAMMPS_NS;
 using namespace MathConst;
 using namespace MathSpecial;
 
-#ifdef FFT_SINGLE
-#define ZEROF 0.0f
-#else
-#define ZEROF 0.0
-#endif
-
-#define EPS_HOC 1.0e-7
+static constexpr FFT_SCALAR ZEROF = 0.0;
+static constexpr double EPS_HOC = 1.0e-7;
 
 /* ---------------------------------------------------------------------- */
 

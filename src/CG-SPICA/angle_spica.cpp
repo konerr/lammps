@@ -2,7 +2,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -21,17 +21,17 @@
 
 #include "angle_spica.h"
 
-#include <cmath>
 #include "atom.h"
-#include "neighbor.h"
-#include "pair.h"
-#include "domain.h"
 #include "comm.h"
+#include "domain.h"
+#include "error.h"
 #include "force.h"
 #include "math_const.h"
 #include "memory.h"
-#include "error.h"
+#include "neighbor.h"
+#include "pair.h"
 
+#include <cmath>
 
 #include "lj_spica_common.h"
 
@@ -39,11 +39,16 @@ using namespace LAMMPS_NS;
 using namespace MathConst;
 using namespace LJSPICAParms;
 
-#define SMALL 0.001
+static constexpr double SMALL = 0.001;
 
 /* ---------------------------------------------------------------------- */
 
-AngleSPICA::AngleSPICA(LAMMPS *lmp) : Angle(lmp) { repflag = 0;}
+AngleSPICA::AngleSPICA(LAMMPS *lmp) :
+    Angle(lmp), k(nullptr), theta0(nullptr), lj_type(nullptr), lj1(nullptr), lj2(nullptr),
+    lj3(nullptr), lj4(nullptr), rminsq(nullptr), emin(nullptr)
+{
+  repflag = 0;
+}
 
 /* ---------------------------------------------------------------------- */
 
@@ -292,7 +297,7 @@ void AngleSPICA::init_style()
 
   repflag = 0;
   for (int i = 1; i <= atom->nangletypes; i++)
-    if (repscale[i] > 0.0) repflag = 1;
+    if (repscale && (repscale[i] > 0.0)) repflag = 1;
 
   // set up pointers to access SPICA LJ parameters for 1-3 interactions
 

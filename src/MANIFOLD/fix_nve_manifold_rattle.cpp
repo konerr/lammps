@@ -2,7 +2,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -55,7 +55,7 @@ using namespace user_manifold;
 enum { CONST, EQUAL }; // For treating the variables.
 
 static const char* cite_fix_nve_manifold_rattle =
-  "fix nve/manifold/rattle command:\n\n"
+  "fix nve/manifold/rattle command: doi:10.1016/j.bpj.2016.02.017\n\n"
   "@article{paquay-2016,\n"
   "   author        = {Paquay, Stefan and Kusters, Remy},\n"
   "   doi           = {10.1016/j.bpj.2016.02.017},\n"
@@ -287,21 +287,21 @@ void FixNVEManifoldRattle::update_var_params()
 
 /* -----------------------------------------------------------------------------
    ---------------------------------------------------------------------------*/
-int FixNVEManifoldRattle::dof(int /*igroup*/)
+bigint FixNVEManifoldRattle::dof(int /*igroup*/)
 {
   int *mask = atom->mask;
   int nlocal = atom->nlocal;
-  int natoms = 0;
+  bigint natoms = 0;
   for (int i = 0; i < nlocal; ++i) {
     if (mask[i] & groupbit) ++natoms;
   }
 
-  int dofs;
-  MPI_Allreduce( &natoms, &dofs, 1, MPI_INT, MPI_SUM, world );
+  bigint dofs;
+  MPI_Allreduce( &natoms, &dofs, 1, MPI_LMP_BIGINT, MPI_SUM, world );
 
   // Make sure that, if there is just no or one atom, no dofs are subtracted,
   // since for the first atom already 3 dofs are subtracted because of the
-  // centre of mass corrections:
+  // center of mass corrections:
   if (dofs <= 1) dofs = 0;
   stats.dofs_removed = dofs;
 

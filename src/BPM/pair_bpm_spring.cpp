@@ -1,7 +1,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -20,6 +20,8 @@
 #include "memory.h"
 #include "neigh_list.h"
 #include "neighbor.h"
+
+#include <cmath>
 
 using namespace LAMMPS_NS;
 
@@ -199,6 +201,18 @@ void PairBPMSpring::coeff(int narg, char **arg)
   }
 
   if (count == 0) error->all(FLERR, "Incorrect args for pair coefficients");
+}
+
+/* ----------------------------------------------------------------------
+   init specific to this pair style
+------------------------------------------------------------------------- */
+
+void PairBPMSpring::init_style()
+{
+  if (comm->ghost_velocity == 0)
+    error->all(FLERR,"Pair bpm/spring requires ghost atoms store velocity");
+
+  neighbor->add_request(this);
 }
 
 /* ----------------------------------------------------------------------

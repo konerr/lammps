@@ -1,7 +1,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -39,11 +39,9 @@
 
 using namespace LAMMPS_NS;
 
-#define MAXLINE 1024
-#define DELTA 4
-
-#define GRIDDENSITY 8000
-#define GRIDSTART 0.1
+static constexpr int DELTA = 4;
+static constexpr int GRIDDENSITY = 8000;
+static constexpr double GRIDSTART = 0.1;
 
 // max number of interaction per atom for f(Z) environment potential
 
@@ -871,11 +869,15 @@ void PairEDIP::setup_params()
         n = -1;
         for (m = 0; m < nparams; m++) {
           if (i == params[m].ielement && j == params[m].jelement && k == params[m].kelement) {
-            if (n >= 0) error->all(FLERR, "Potential file has duplicate entry");
+            if (n >= 0)
+              error->all(FLERR, "Potential file has a duplicate entry for: {} {} {}", elements[i],
+                         elements[j], elements[k]);
             n = m;
           }
         }
-        if (n < 0) error->all(FLERR, "Potential file is missing an entry");
+        if (n < 0)
+          error->all(FLERR, "Potential file is missing an entry for: {} {} {}", elements[i],
+                     elements[j], elements[k]);
         elem3param[i][j][k] = n;
       }
 

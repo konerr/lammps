@@ -2,7 +2,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -33,9 +33,9 @@
 
 using namespace LAMMPS_NS;
 
-#define MAXLINE 1024
-#define TOL 1.0e-9
-#define PGDELTA 1
+static constexpr int MAXLINE = 1024;
+static constexpr double TOL = 1.0e-9;
+static constexpr int PGDELTA = 1;
 
 /* ---------------------------------------------------------------------- */
 
@@ -115,7 +115,7 @@ void PairLCBOP::allocate()
 ------------------------------------------------------------------------- */
 
 void PairLCBOP::settings(int narg, char **/*arg*/) {
-  if (narg != 0 ) error->all(FLERR,"Illegal pair_style command");
+  if (narg != 0) error->all(FLERR,"Illegal pair_style command");
 }
 
 /* ----------------------------------------------------------------------

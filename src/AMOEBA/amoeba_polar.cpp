@@ -2,7 +2,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/ Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -18,16 +18,19 @@
 #include "atom.h"
 #include "comm.h"
 #include "domain.h"
-#include "fft3d_wrap.h"
 #include "math_const.h"
-#include "memory.h"
+#include "math_special.h"
 #include "neigh_list.h"
+#include "timer.h"
 
 #include <cmath>
 #include <cstring>
 
 using namespace LAMMPS_NS;
 using namespace MathConst;
+
+using MathSpecial::square;
+using MathSpecial::cube;
 
 enum{FIELD,ZRSD,TORQUE,UFLD};                          // reverse comm
 enum{MUTUAL,OPT,TCG,DIRECT};
@@ -53,6 +56,8 @@ void PairAmoeba::polar()
   double fix[3],fiy[3],fiz[3];
   double tep[3];
 
+  double time0,time1,time2;
+
   // set cutoffs, taper coeffs, and PME params
 
   if (use_ewald) choose(POLAR_LONG);
@@ -74,15 +79,20 @@ void PairAmoeba::polar()
 
   // compute the real space part of the dipole interactions
 
+  if (timer->has_sync()) MPI_Barrier(world);
+  time0 = platform::walltime();
+
   if (polar_rspace_flag) polar_real();
+  time1 = platform::walltime();
 
   // compute the reciprocal space part of dipole interactions
 
   if (polar_kspace_flag) polar_kspace();
+  time2 = platform::walltime();
 
   // compute the Ewald self-energy torque and virial terms
 
-  term = (4.0/3.0) * felec * pow(aewald,3.0) / MY_PIS;
+  term = (4.0/3.0) * felec * cube(aewald) / MY_PIS;
 
   for (i = 0; i < nlocal; i++) {
     dix = rpole[i][1];
@@ -131,6 +141,11 @@ void PairAmoeba::polar()
     virpolar[4] -= vxz;
     virpolar[5] -= vyz;
   }
+
+  // accumulate timing information
+
+  time_polar_rspace += time1 - time0;
+  time_polar_kspace += time2 - time1;
 }
 
 /* ----------------------------------------------------------------------
@@ -246,10 +261,12 @@ void PairAmoeba::polar_real()
   double drc3[3],drc5[3],drc7[3];
   double urc3[3],urc5[3],tep[3];
   double fix[3],fiy[3],fiz[3];
+#if 0  // for poltyp TCG which is currently not supported
   double uax[3],uay[3],uaz[3];
   double ubx[3],uby[3],ubz[3];
   double uaxp[3],uayp[3],uazp[3];
   double ubxp[3],ubyp[3],ubzp[3];
+#endif
   double dmpi[9],dmpk[9];
   double dmpik[9];
   double bn[5];
@@ -316,6 +333,7 @@ void PairAmoeba::polar_real()
     uixp = uinp[i][0];
     uiyp = uinp[i][1];
     uizp = uinp[i][2];
+#if 0  // for poltyp TCG which is currently not supported
     for (m = 0; m < tcgnab; m++) {
       uax[m] = uad[m][i][0];
       uay[m] = uad[m][i][1];
@@ -330,7 +348,7 @@ void PairAmoeba::polar_real()
       ubyp[m] = ubp[m][i][1];
       ubzp[m] = ubp[m][i][2];
     }
-
+#endif
     if (amoeba) {
       pdi = pdamp[itype];
       pti = thole[itype];
@@ -377,7 +395,7 @@ void PairAmoeba::polar_real()
           factor_uscale = 1.0;
         }
       }
-
+      //if (i == 12 && j < 20) printf("j = %d: r = %f; factor_wscale = %f\n", j, sqrt(r2), factor_wscale);
       r = sqrt(r2);
       ck = rpole[j][0];
       dkx = rpole[j][1];
@@ -454,7 +472,7 @@ void PairAmoeba::polar_real()
         damp = pdi * pdamp[jtype];
         if (damp != 0.0) {
           pgamma = MIN(pti,thole[jtype]);
-          damp = pgamma * pow(r/damp,3.0);
+          damp = pgamma * cube(r/damp);
           if (damp < 50.0) {
             expdamp = exp(-damp);
             sc3 = 1.0 - expdamp;
@@ -499,6 +517,18 @@ void PairAmoeba::polar_real()
             urc3[k] = rc3[k] * factor_uscale;
             urc5[k] = rc5[k] * factor_uscale;
           }
+        } else {
+          // avoid uninitialized data access when damp == 0.0
+          psc3 = psc5 = psc7 = dsc3 = dsc5 = dsc7 = usc3 = usc5 = 0.0;
+          psr3 = psr5 = psr7 = dsr3 = dsr5 = dsr7 = usr5 = 0.0;
+          prc3[0] = prc3[1] = prc3[2] = 0.0;
+          drc3[0] = drc3[1] = drc3[2] = 0.0;
+          prc5[0] = prc5[1] = prc5[2] = 0.0;
+          drc5[0] = drc5[1] = drc5[2] = 0.0;
+          prc7[0] = prc7[1] = prc7[2] = 0.0;
+          drc7[0] = drc7[1] = drc7[2] = 0.0;
+          urc3[0] = urc3[1] = urc3[2] = 0.0;
+          urc5[0] = urc5[1] = urc5[2] = 0.0;
         }
 
       // apply charge penetration damping to scale factors
@@ -580,7 +610,6 @@ void PairAmoeba::polar_real()
       dufld[i][3] += xr*tiz5 + zr*tix5 + 2.0*xr*zr*tuir;
       dufld[i][4] += yr*tiz5 + zr*tiy5 + 2.0*yr*zr*tuir;
       dufld[i][5] += zr*tiz5 + zr*zr*tuir;
-
       dufld[j][0] -= xr*tkx5 + xr*xr*tukr;
       dufld[j][1] -= xr*tky5 + yr*tkx5 + 2.0*xr*yr*tukr;
       dufld[j][2] -= yr*tky5 + yr*yr*tukr;
@@ -838,6 +867,7 @@ void PairAmoeba::polar_real()
         frcx = -2.0 * depx;
         frcy = -2.0 * depy;
         frcz = -2.0 * depz;
+
       }
 
       // get the dtau/dr terms used for mutual polarization force
@@ -1014,7 +1044,8 @@ void PairAmoeba::polar_real()
       // get the dtau/dr terms used for TCG polarization force
 
       } else if (poltyp == TCG) {
-        /*
+#if 0
+        // poltyp TCG not yet supported for AMOEBA/HIPPO
         for (m = 0; m < tcgnab; m++) {
           ukx = ubd[m][j][0];
           uky = ubd[m][j][1];
@@ -1115,8 +1146,7 @@ void PairAmoeba::polar_real()
           frcx += depx;
           frcy += depy;
           frcz += depz;
-        }
-        */
+#endif
       }
 
       // increment force-based gradient on the interaction sites
@@ -1260,7 +1290,7 @@ void PairAmoeba::polar_kspace()
   int nlocal = atom->nlocal;
 
   double volbox = domain->prd[0] * domain->prd[1] * domain->prd[2];
-  pterm = pow((MY_PI/aewald),2.0);
+  pterm = square(MY_PI/aewald);
   volterm = MY_PI * volbox;
 
   // initialize variables required for the scalar summation
@@ -1310,7 +1340,7 @@ void PairAmoeba::polar_kspace()
 
     // gridpre = my portion of 3d grid in brick decomp w/ ghost values
 
-    double ***gridpre = (double ***) p_kspace->zero();
+    FFT_SCALAR ***gridpre = (FFT_SCALAR ***) p_kspace->zero();
 
     // map atoms to grid
 
@@ -1319,7 +1349,7 @@ void PairAmoeba::polar_kspace()
     // pre-convolution operations including forward FFT
     // gridfft = my portion of complex 3d grid in FFT decomp as 1d vector
 
-    double *gridfft = p_kspace->pre_convolution();
+    FFT_SCALAR *gridfft = p_kspace->pre_convolution();
 
     // ---------------------
     // convolution operation
@@ -1369,7 +1399,7 @@ void PairAmoeba::polar_kspace()
     // post-convolution operations including backward FFT
     // gridppost = my portion of 3d grid in brick decomp w/ ghost values
 
-    double ***gridpost = (double ***) p_kspace->post_convolution();
+    FFT_SCALAR ***gridpost = (FFT_SCALAR ***) p_kspace->post_convolution();
 
     // get potential
 
@@ -1402,7 +1432,7 @@ void PairAmoeba::polar_kspace()
 
   // gridpre2 = my portion of 4d grid in brick decomp w/ ghost values
 
-  double ****gridpre2 = (double ****) pc_kspace->zero();
+  FFT_SCALAR ****gridpre2 = (FFT_SCALAR ****) pc_kspace->zero();
 
   // map 2 values to grid
 
@@ -1411,7 +1441,7 @@ void PairAmoeba::polar_kspace()
   // pre-convolution operations including forward FFT
   // gridfft = my portion of complex 3d grid in FFT decomposition
 
-  double *gridfft = pc_kspace->pre_convolution();
+  FFT_SCALAR *gridfft = pc_kspace->pre_convolution();
 
   // ---------------------
   // convolution operation
@@ -1434,7 +1464,7 @@ void PairAmoeba::polar_kspace()
   // post-convolution operations including backward FFT
   // gridppost = my portion of 4d grid in brick decomp w/ ghost values
 
-  double ****gridpost = (double ****) pc_kspace->post_convolution();
+  FFT_SCALAR ****gridpost = (FFT_SCALAR ****) pc_kspace->post_convolution();
 
   // get potential
 
@@ -1840,7 +1870,7 @@ void PairAmoeba::polar_kspace()
   // gridpre = my portion of 3d grid in brick decomp w/ ghost values
   // zeroed by zero()
 
-  double ***gridpre = (double ***) p_kspace->zero();
+  FFT_SCALAR ***gridpre = (FFT_SCALAR ***) p_kspace->zero();
 
   // map atoms to grid
 
@@ -1870,7 +1900,7 @@ void PairAmoeba::polar_kspace()
   // gridpre = my portion of 3d grid in brick decomp w/ ghost values
   // zeroed by zero()
 
-  gridpre = (double ***) p_kspace->zero();
+  gridpre = (FFT_SCALAR ***) p_kspace->zero();
 
   // map atoms to grid
 
@@ -1879,7 +1909,7 @@ void PairAmoeba::polar_kspace()
   // pre-convolution operations including forward FFT
   // gridfft1/2 = my portions of complex 3d grid in FFT decomp as 1d vectors
 
-  double *gridfft2 = p_kspace->pre_convolution();
+  FFT_SCALAR *gridfft2 = p_kspace->pre_convolution();
 
   // ---------------------
   // convolution operation
@@ -1936,7 +1966,7 @@ void PairAmoeba::polar_kspace()
     // gridpre = my portion of 3d grid in brick decomp w/ ghost values
     // zeroed by zero()
 
-    double ***gridpre = (double ***) p_kspace->zero();
+    FFT_SCALAR ***gridpre = (FFT_SCALAR ***) p_kspace->zero();
 
     // map atoms to grid
 
@@ -1945,12 +1975,12 @@ void PairAmoeba::polar_kspace()
     // pre-convolution operations including forward FFT
     // gridfft = my portion of complex 3d grid in FFT decomp as 1d vector
 
-    double *gridfft = p_kspace->pre_convolution();
+    FFT_SCALAR *gridfft = p_kspace->pre_convolution();
 
     // gridfft1 = copy of first FFT
 
     int nfft_owned = p_kspace->nfft_owned;
-    memcpy(gridfft1,gridfft,2*nfft_owned*sizeof(double));
+    memcpy(gridfft1,gridfft,2*nfft_owned*sizeof(FFT_SCALAR));
 
     // assign ??? to the PME grid
 
@@ -1965,7 +1995,7 @@ void PairAmoeba::polar_kspace()
 
     // gridpre = my portion of 3d grid in brick decomp w/ ghost values
 
-    gridpre = (double ***) p_kspace->zero();
+    gridpre = (FFT_SCALAR ***) p_kspace->zero();
 
     // map atoms to grid
 
@@ -1974,7 +2004,7 @@ void PairAmoeba::polar_kspace()
     // pre-convolution operations including forward FFT
     // gridfft = my portion of complex 3d grid in FFT decomp as 1d vector
 
-    double *gridfft2 = p_kspace->pre_convolution();
+    FFT_SCALAR *gridfft2 = p_kspace->pre_convolution();
 
     // ---------------------
     // convolution operation

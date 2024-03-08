@@ -1,7 +1,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS Development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -12,16 +12,16 @@
 ------------------------------------------------------------------------- */
 
 #include "test_main.h"
+#include "atom.h"
+#include "error_stats.h"
+#include "lammps.h"
 #include "pointers.h"
 #include "test_config.h"
 #include "test_config_reader.h"
-#include "error_stats.h"
 #include "utils.h"
 #include "yaml_writer.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "lammps.h"
-#include "atom.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -30,13 +30,14 @@
 #include <mpi.h>
 #include <vector>
 
-using LAMMPS_NS::LAMMPS;
 using LAMMPS_NS::Atom;
+using LAMMPS_NS::LAMMPS;
+using LAMMPS_NS::tagint;
 using LAMMPS_NS::utils::split_words;
 using LAMMPS_NS::utils::trim;
-using LAMMPS_NS::tagint;
 
-void EXPECT_STRESS(const std::string & name, double * stress, const stress_t & expected_stress, double epsilon)
+void EXPECT_STRESS(const std::string &name, double *stress, const stress_t &expected_stress,
+                   double epsilon)
 {
     SCOPED_TRACE("EXPECT_STRESS: " + name);
     ErrorStats stats;
@@ -46,13 +47,15 @@ void EXPECT_STRESS(const std::string & name, double * stress, const stress_t & e
     EXPECT_FP_LE_WITH_EPS(stress[3], expected_stress.xy, epsilon);
     EXPECT_FP_LE_WITH_EPS(stress[4], expected_stress.xz, epsilon);
     EXPECT_FP_LE_WITH_EPS(stress[5], expected_stress.yz, epsilon);
-    if (print_stats) std::cerr << name << " stats" << stats << std::endl;
+    if (print_stats) std::cerr << name << " stats: " << stats << std::endl;
 }
 
-void EXPECT_FORCES(const std::string & name, Atom * atom, const std::vector<coord_t> & f_ref, double epsilon) {
+void EXPECT_FORCES(const std::string &name, Atom *atom, const std::vector<coord_t> &f_ref,
+                   double epsilon)
+{
     SCOPED_TRACE("EXPECT_FORCES: " + name);
-    double ** f = atom->f;
-    tagint * tag = atom->tag;
+    double **f       = atom->f;
+    tagint *tag      = atom->tag;
     const int nlocal = atom->nlocal;
     ASSERT_EQ(nlocal + 1, f_ref.size());
     ErrorStats stats;
@@ -61,13 +64,15 @@ void EXPECT_FORCES(const std::string & name, Atom * atom, const std::vector<coor
         EXPECT_FP_LE_WITH_EPS(f[i][1], f_ref[tag[i]].y, epsilon);
         EXPECT_FP_LE_WITH_EPS(f[i][2], f_ref[tag[i]].z, epsilon);
     }
-    if (print_stats) std::cerr << name << " stats" << stats << std::endl;
+    if (print_stats) std::cerr << name << " stats: " << stats << std::endl;
 }
 
-void EXPECT_POSITIONS(const std::string & name, Atom * atom, const std::vector<coord_t> & x_ref, double epsilon) {
+void EXPECT_POSITIONS(const std::string &name, Atom *atom, const std::vector<coord_t> &x_ref,
+                      double epsilon)
+{
     SCOPED_TRACE("EXPECT_POSITIONS: " + name);
-    double ** x = atom->x;
-    tagint * tag = atom->tag;
+    double **x       = atom->x;
+    tagint *tag      = atom->tag;
     const int nlocal = atom->nlocal;
     ASSERT_EQ(nlocal + 1, x_ref.size());
     ErrorStats stats;
@@ -76,13 +81,15 @@ void EXPECT_POSITIONS(const std::string & name, Atom * atom, const std::vector<c
         EXPECT_FP_LE_WITH_EPS(x[i][1], x_ref[tag[i]].y, epsilon);
         EXPECT_FP_LE_WITH_EPS(x[i][2], x_ref[tag[i]].z, epsilon);
     }
-    if (print_stats) std::cerr << name << " stats" << stats << std::endl;
+    if (print_stats) std::cerr << name << " stats: " << stats << std::endl;
 }
 
-void EXPECT_VELOCITIES(const std::string & name, Atom * atom, const std::vector<coord_t> & v_ref, double epsilon) {
+void EXPECT_VELOCITIES(const std::string &name, Atom *atom, const std::vector<coord_t> &v_ref,
+                       double epsilon)
+{
     SCOPED_TRACE("EXPECT_VELOCITIES: " + name);
-    double ** v = atom->v;
-    tagint * tag = atom->tag;
+    double **v       = atom->v;
+    tagint *tag      = atom->tag;
     const int nlocal = atom->nlocal;
     ASSERT_EQ(nlocal + 1, v_ref.size());
     ErrorStats stats;
@@ -91,7 +98,7 @@ void EXPECT_VELOCITIES(const std::string & name, Atom * atom, const std::vector<
         EXPECT_FP_LE_WITH_EPS(v[i][1], v_ref[tag[i]].y, epsilon);
         EXPECT_FP_LE_WITH_EPS(v[i][2], v_ref[tag[i]].z, epsilon);
     }
-    if (print_stats) std::cerr << name << " stats" << stats << std::endl;
+    if (print_stats) std::cerr << name << " stats: " << stats << std::endl;
 }
 
 // common read_yaml_file function

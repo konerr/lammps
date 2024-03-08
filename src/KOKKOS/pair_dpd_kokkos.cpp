@@ -2,7 +2,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -37,14 +37,14 @@
 
 using namespace LAMMPS_NS;
 
-#define EPSILON 1.0e-10
+static constexpr double EPSILON = 1.0e-10;
 
 
 template<class DeviceType>
-PairDPDKokkos<DeviceType>::PairDPDKokkos(class LAMMPS *lmp) :
-  PairDPD(lmp) ,
+PairDPDKokkos<DeviceType>::PairDPDKokkos(class LAMMPS *_lmp) :
+  PairDPD(_lmp) ,
 #ifdef DPD_USE_RAN_MARS
-  rand_pool(0 /* unused */, lmp)
+  rand_pool(0 /* unused */, _lmp)
 #else
   rand_pool()
 #endif
@@ -95,9 +95,9 @@ void PairDPDKokkos<DeviceType>::init_style()
     error->all(FLERR,"Must use half neighbor list style and newton on with pair dpd/kk");
 
   auto request = neighbor->find_request(this);
-  request->set_kokkos_host(std::is_same<DeviceType,LMPHostType>::value &&
-                           !std::is_same<DeviceType,LMPDeviceType>::value);
-  request->set_kokkos_device(std::is_same<DeviceType,LMPDeviceType>::value);
+  request->set_kokkos_host(std::is_same_v<DeviceType,LMPHostType> &&
+                           !std::is_same_v<DeviceType,LMPDeviceType>);
+  request->set_kokkos_device(std::is_same_v<DeviceType,LMPDeviceType>);
 }
 
 /* ---------------------------------------------------------------------- */
@@ -134,6 +134,10 @@ void PairDPDKokkos<DeviceType>::compute(int eflagin, int vflagin)
   special_lj[1] = force->special_lj[1];
   special_lj[2] = force->special_lj[2];
   special_lj[3] = force->special_lj[3];
+  special_rf[0] = sqrt(force->special_lj[0]);
+  special_rf[1] = sqrt(force->special_lj[1]);
+  special_rf[2] = sqrt(force->special_lj[2]);
+  special_rf[3] = sqrt(force->special_lj[3]);
 
   nlocal = atom->nlocal;
   dtinvsqrt = 1.0/sqrt(update->dt);
@@ -224,7 +228,7 @@ template<int NEIGHFLAG, int EVFLAG>
 KOKKOS_INLINE_FUNCTION
 void PairDPDKokkos<DeviceType>::operator() (TagDPDKokkos<NEIGHFLAG,EVFLAG>, const int &ii, EV_FLOAT &ev) const {
 
-  // The f array is duplicated for OpenMP, atomic for CUDA, and neither for Serial
+  // The f array is duplicated for OpenMP, atomic for GPU, and neither for Serial
 
   auto v_f = ScatterViewHelper<NeedDup_v<NEIGHFLAG,DeviceType>,decltype(dup_f),decltype(ndup_f)>::get(dup_f,ndup_f);
   auto a_f = v_f.template access<AtomicDup_v<NEIGHFLAG,DeviceType>>();
@@ -232,7 +236,7 @@ void PairDPDKokkos<DeviceType>::operator() (TagDPDKokkos<NEIGHFLAG,EVFLAG>, cons
   int i,j,jj,jnum,itype,jtype;
   double xtmp,ytmp,ztmp,delx,dely,delz,fpair;
   double vxtmp,vytmp,vztmp,delvx,delvy,delvz;
-  double rsq,r,rinv,dot,wd,randnum,factor_dpd;
+  double rsq,r,rinv,dot,wd,randnum,factor_dpd,factor_sqrt;
   double fx = 0,fy = 0,fz = 0;
   double evdwl = 0;
   i = d_ilist[ii];
@@ -248,6 +252,7 @@ void PairDPDKokkos<DeviceType>::operator() (TagDPDKokkos<NEIGHFLAG,EVFLAG>, cons
   for (jj = 0; jj < jnum; jj++) {
     j = d_neighbors(i,jj);
     factor_dpd = special_lj[sbmask(j)];
+    factor_sqrt = special_rf[sbmask(j)];
     j &= NEIGHMASK;
 
     delx = xtmp - x(j,0);
@@ -273,10 +278,11 @@ void PairDPDKokkos<DeviceType>::operator() (TagDPDKokkos<NEIGHFLAG,EVFLAG>, cons
 
       // drag force - parallel
       fpair -= params(itype,jtype).gamma*wd*wd*dot*rinv;
+      fpair *= factor_dpd;
 
       // random force - parallel
-      fpair += params(itype,jtype).sigma*wd*randnum*dtinvsqrt;
-      fpair *= factor_dpd*rinv;
+      fpair += factor_sqrt*params(itype,jtype).sigma*wd*randnum*dtinvsqrt;
+      fpair *= rinv;
 
       fx += fpair*delx;
       fy += fpair*dely;
@@ -313,7 +319,7 @@ void PairDPDKokkos<DeviceType>::ev_tally(EV_FLOAT &ev, const int &i, const int &
       const F_FLOAT &epair, const F_FLOAT &fpair, const F_FLOAT &delx,
                 const F_FLOAT &dely, const F_FLOAT &delz) const
 {
-  // The eatom and vatom arrays are duplicated for OpenMP, atomic for CUDA, and neither for Serial
+  // The eatom and vatom arrays are duplicated for OpenMP, atomic for GPU, and neither for Serial
 
   auto v_eatom = ScatterViewHelper<NeedDup_v<NEIGHFLAG,DeviceType>,decltype(dup_eatom),decltype(ndup_eatom)>::get(dup_eatom,ndup_eatom);
   auto a_eatom = v_eatom.template access<AtomicDup_v<NEIGHFLAG,DeviceType>>();

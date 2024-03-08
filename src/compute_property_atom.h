@@ -1,7 +1,7 @@
 /* -*- c++ -*- ----------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -95,6 +95,8 @@ class ComputePropertyAtom : public Compute {
   void pack_omegax(int);
   void pack_omegay(int);
   void pack_omegaz(int);
+  void pack_temperature(int);
+  void pack_heatflow(int);
   void pack_angmomx(int);
   void pack_angmomy(int);
   void pack_angmomz(int);

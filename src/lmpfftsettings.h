@@ -1,7 +1,7 @@
 /* -*- c++ -*- ----------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -16,17 +16,26 @@
 #ifndef LMP_FFT_SETTINGS_H
 #define LMP_FFT_SETTINGS_H
 
-// if user set FFTW, it means FFTW3
+// if a user sets FFTW, it means FFTW3
 
 #ifdef FFT_FFTW
 #ifndef FFT_FFTW3
+#undef FFT_FFTW
 #define FFT_FFTW3
 #endif
 #endif
 
 // set strings for library info output
 
-#if defined(FFT_FFTW3)
+#if defined(FFT_HEFFTE)
+#if defined(FFT_HEFFTE_FFTW)
+#define LMP_FFT_LIB "HeFFTe(FFTW3)"
+#elif defined(FFT_HEFFTE_MKL)
+#define LMP_FFT_LIB "HeFFTe(MKL)"
+#else
+#define LMP_FFT_LIB "HeFFTe(builtin)"
+#endif
+#elif defined(FFT_FFTW3)
 #define LMP_FFT_LIB "FFTW3"
 #elif defined(FFT_MKL)
 #define LMP_FFT_LIB "MKL FFT"

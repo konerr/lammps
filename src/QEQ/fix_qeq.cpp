@@ -2,7 +2,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -27,9 +27,7 @@
 #include "memory.h"
 #include "modify.h"
 #include "neigh_list.h"
-#include "pair.h"
 #include "respa.h"
-#include "suffix.h"
 #include "text_file_reader.h"
 #include "update.h"
 
@@ -60,7 +58,7 @@ FixQEq::FixQEq(LAMMPS *lmp, int narg, char **arg) :
   b_t(nullptr), p(nullptr), q(nullptr), r(nullptr), d(nullptr),
   qf(nullptr), q1(nullptr), q2(nullptr), qv(nullptr)
 {
-  if (narg < 8) error->all(FLERR,"Illegal fix qeq command");
+  if (narg < 8) utils::missing_cmd_args(FLERR, "fix " + std::string(style), error);
 
   scalar_flag = 1;
   extscalar = 0;
@@ -143,7 +141,8 @@ FixQEq::FixQEq(LAMMPS *lmp, int narg, char **arg) :
 FixQEq::~FixQEq()
 {
   // unregister callbacks to this fix from Atom class
-  atom->delete_callback(id,Atom::GROW);
+
+  if (modify->get_fix_by_id(id)) atom->delete_callback(id,Atom::GROW);
 
   memory->destroy(s_hist);
   memory->destroy(t_hist);
@@ -308,7 +307,7 @@ void FixQEq::init()
     error->warning(FLERR,"Fix efield is ignored during charge equilibration");
 
   if (utils::strmatch(update->integrate_style,"^respa"))
-    nlevels_respa = (dynamic_cast<Respa *>( update->integrate))->nlevels;
+    nlevels_respa = (dynamic_cast<Respa *>(update->integrate))->nlevels;
 
   // compute net charge and print warning if too large
 
@@ -336,12 +335,6 @@ void FixQEq::setup_pre_force(int vflag)
 {
   if (force->newton_pair == 0)
     error->all(FLERR,"QEQ with 'newton pair off' not supported");
-
-  if (force->pair) {
-    if (force->pair->suffix_flag & (Suffix::INTEL|Suffix::GPU))
-      error->all(FLERR,"QEQ is not compatiple with suffix version "
-                 "of pair style");
-  }
 
   deallocate_storage();
   allocate_storage();
@@ -809,8 +802,7 @@ void FixQEq::read_file(char *file)
 
     for (int n=1; n <= ntypes; ++n)
       if (setflag[n] == 0)
-        error->one(FLERR,fmt::format("Parameters for atom type {} missing in "
-                                     "qeq parameter file", n));
+        error->one(FLERR,"Parameters for atom type {} missing in qeq parameter file", n);
     delete[] setflag;
   }
 

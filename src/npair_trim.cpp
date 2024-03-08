@@ -1,7 +1,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Trimright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -12,10 +12,11 @@
 ------------------------------------------------------------------------- */
 
 #include "npair_trim.h"
-#include "neigh_list.h"
+
 #include "atom.h"
 #include "error.h"
 #include "my_page.h"
+#include "neigh_list.h"
 
 using namespace LAMMPS_NS;
 
@@ -33,10 +34,10 @@ void NPairTrim::build(NeighList *list)
 
   double cutsq_custom = cutoff_custom * cutoff_custom;
 
-  int i,j,ii,jj,n,jnum,joriginal;
-  int *neighptr,*jlist;
-  double xtmp,ytmp,ztmp;
-  double delx,dely,delz,rsq;
+  int ii, jj, n, jnum, joriginal;
+  int *neighptr, *jlist;
+  double xtmp, ytmp, ztmp;
+  double delx, dely, delz, rsq;
 
   double **x = atom->x;
 
@@ -50,16 +51,20 @@ void NPairTrim::build(NeighList *list)
   int *numneigh_copy = listcopy->numneigh;
   int **firstneigh_copy = listcopy->firstneigh;
   int inum = listcopy->inum;
+  int gnum = listcopy->gnum;
 
   list->inum = inum;
-  list->gnum = listcopy->gnum;
+  list->gnum = gnum;
 
-  for (ii = 0; ii < inum; ii++) {
+  int inum_trim = inum;
+  if (list->ghost) inum_trim += gnum;
+
+  for (ii = 0; ii < inum_trim; ii++) {
     n = 0;
     neighptr = ipage->vget();
 
     const int i = ilist_copy[ii];
-    ilist[i] = i;
+    ilist[ii] = i;
     xtmp = x[i][0];
     ytmp = x[i][1];
     ztmp = x[i][2];
@@ -71,7 +76,7 @@ void NPairTrim::build(NeighList *list)
 
     for (jj = 0; jj < jnum; jj++) {
       joriginal = jlist[jj];
-      j = joriginal & NEIGHMASK;
+      const int j = joriginal & NEIGHMASK;
 
       delx = xtmp - x[j][0];
       dely = ytmp - x[j][1];
@@ -86,7 +91,6 @@ void NPairTrim::build(NeighList *list)
     firstneigh[i] = neighptr;
     numneigh[i] = n;
     ipage->vgot(n);
-    if (ipage->status())
-      error->one(FLERR,"Neighbor list overflow, boost neigh_modify one");
+    if (ipage->status()) error->one(FLERR, "Neighbor list overflow, boost neigh_modify one");
   }
 }

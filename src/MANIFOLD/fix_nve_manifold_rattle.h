@@ -1,7 +1,7 @@
 /* -*- c++ -*- ----------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -75,7 +75,7 @@ class FixNVEManifoldRattle : public Fix {
   void init() override;
   void reset_dt() override;
   void end_of_step() override;
-  int dof(int) override;
+  bigint dof(int) override;
   void setup(int) override {}    // Not needed for fixNVE but is for fixNVT
   double memory_usage() override;
 

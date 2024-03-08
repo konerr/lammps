@@ -2,7 +2,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -37,18 +37,18 @@
 using namespace LAMMPS_NS;
 using namespace MathConst;
 
-#define EWALD_F   1.12837917
-#define EWALD_P   9.95473818e-1
-#define B0       -0.1335096380159268
-#define B1       -2.57839507e-1
-#define B2       -1.37203639e-1
-#define B3       -8.88822059e-3
-#define B4       -5.80844129e-3
-#define B5        1.14652755e-1
+static constexpr double EWALD_F =  1.12837917;
+static constexpr double EWALD_P =  9.95473818e-1;
+static constexpr double B0      = -0.1335096380159268;
+static constexpr double B1      = -2.57839507e-1;
+static constexpr double B2      = -1.37203639e-1;
+static constexpr double B3      = -8.88822059e-3;
+static constexpr double B4      = -5.80844129e-3;
+static constexpr double B5      =  1.14652755e-1;
 
-#define EPSILON 1.0e-20
-#define EPS_EWALD 1.0e-6
-#define EPS_EWALD_SQR 1.0e-12
+static constexpr double EPSILON = 1.0e-20;
+static constexpr double EPS_EWALD = 1.0e-6;
+static constexpr double EPS_EWALD_SQR = 1.0e-12;
 
 /* ---------------------------------------------------------------------- */
 
@@ -364,7 +364,7 @@ void PairLJCutTholeLong::init_style()
     if (strcmp(modify->fix[ifix]->style,"drude") == 0) break;
   if (ifix == modify->nfix)
       error->all(FLERR, "Pair style lj/cut/thole/long requires fix drude");
-  fix_drude = dynamic_cast<FixDrude *>( modify->fix[ifix]);
+  fix_drude = dynamic_cast<FixDrude *>(modify->fix[ifix]);
 
   neighbor->add_request(this);
 
@@ -374,7 +374,7 @@ void PairLJCutTholeLong::init_style()
 
   cut_respa = nullptr;
 
-  // insure use of KSpace long-range solver, set g_ewald
+  // ensure use of KSpace long-range solver, set g_ewald
 
   if (force->kspace == nullptr)
     error->all(FLERR,"Pair style requires a KSpace style");

@@ -1,7 +1,7 @@
 /* -*- c++ -*- ----------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -25,6 +25,8 @@ class Molecule : protected Pointers {
                // else 0 if not first in set
   int last;    // 1 if last molecule in set, else 0
 
+  std::string title;    // title string of the molecule file
+
   // number of atoms,bonds,etc in molecule
   // nibody,ndbody = # of integer/double fields in body
 
@@ -41,7 +43,7 @@ class Molecule : protected Pointers {
 
   // 1 if attribute defined in file, 0 if not
 
-  int xflag, typeflag, moleculeflag, fragmentflag, qflag, radiusflag, rmassflag;
+  int xflag, typeflag, moleculeflag, fragmentflag, qflag, radiusflag, muflag, rmassflag;
   int bondflag, angleflag, dihedralflag, improperflag;
   int nspecialflag, specialflag;
   int shakeflag, shakeflagflag, shakeatomflag, shaketypeflag;
@@ -63,6 +65,7 @@ class Molecule : protected Pointers {
   double *q;           // charge on each atom
   double *radius;      // radius of each atom
   double *rmass;       // mass of each atom
+  double **mu;         // dipole vector of each atom
 
   int *num_bond;    // bonds, angles, dihedrals, impropers for each atom
   int **bond_type;
@@ -125,7 +128,7 @@ class Molecule : protected Pointers {
   void compute_com();
   void compute_inertia();
   int findfragment(const char *);
-  void check_attributes(int);
+  void check_attributes();
 
  private:
   int me;
@@ -142,6 +145,7 @@ class Molecule : protected Pointers {
   void fragments(char *);
   void charges(char *);
   void diameters(char *);
+  void dipoles(char *);
   void masses(char *);
   void bonds(int, char *);
   void angles(int, char *);

@@ -2,7 +2,7 @@
 /* ----------------------------------------------------------------------
  LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
  https://www.lammps.org/, Sandia National Laboratories
- Steve Plimpton, sjplimp@sandia.gov
+ LAMMPS development team: developers@lammps.org
 
  Copyright (2003) Sandia Corporation.  Under the terms of Contract
  DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -26,14 +26,15 @@
 #include "text_file_reader.h"
 
 #include <cstring>
+#include <exception>
 #include <Eigen/Eigen>
 
 using namespace LAMMPS_NS;
 using namespace FixConst;
 using namespace Eigen;
 using namespace std;
-#define DELTA 16384
-#define EPSILON 1.0e-6
+
+static constexpr double EPSILON = 1.0e-6;
 
 /* ---------------------------------------------------------------------- */
 
@@ -112,7 +113,7 @@ void FixSMDWallSurface::setup(int /*vflag*/) {
 
         // set bounds for my proc
         // if periodic and I am lo/hi proc, adjust bounds by EPSILON
-        // insures all data atoms will be owned even with round-off
+        // ensures all data atoms will be owned even with round-off
 
         int triclinic = domain->triclinic;
 

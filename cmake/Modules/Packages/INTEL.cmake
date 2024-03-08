@@ -111,9 +111,8 @@ if(PKG_KSPACE)
   list(APPEND INTEL_SOURCES ${INTEL_SOURCES_DIR}/verlet_lrt_intel.cpp)
   RegisterIntegrateStyle(${INTEL_SOURCES_DIR}/verlet_lrt_intel.h)
 endif()
-
-if(PKG_ELECTRODE)
-  list(APPEND INTEL_SOURCES ${INTEL_SOURCES_DIR}/electrode_accel_intel.cpp)
+if(PKG_ML-SNAP)
+  list(APPEND INTEL_SOURCES ${INTEL_SOURCES_DIR}/sna_intel.cpp)
 endif()
 
 target_sources(lammps PRIVATE ${INTEL_SOURCES})

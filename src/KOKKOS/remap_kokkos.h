@@ -2,7 +2,7 @@
 /* -*- c++ -*- ----------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -54,7 +54,7 @@ struct remap_plan_3d_kokkos {
   int usecollective;                // use collective or point-to-point MPI
   int commringlen;                  // length of commringlist
   int *commringlist;                // ranks on communication ring of this plan
-  int usecuda_aware;                // use CUDA-Aware MPI or not
+  int usegpu_aware;                 // use GPU-Aware MPI or not
 };
 
 template<class DeviceType>

@@ -1,7 +1,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -24,6 +24,7 @@
 #include "modify.h"
 
 #include <cmath>
+#include <cstring>
 
 using namespace LAMMPS_NS;
 using MathConst::MY_PI;
@@ -46,7 +47,6 @@ AtomVecTri::AtomVecTri(LAMMPS *lmp) : AtomVec(lmp)
   atom->molecule_flag = atom->rmass_flag = 1;
   atom->radius_flag = atom->omega_flag = atom->angmom_flag = 1;
   atom->torque_flag = 1;
-  atom->sphere_flag = 1;
 
   nlocal_bonus = nghost_bonus = nmax_bonus = 0;
   bonus = nullptr;

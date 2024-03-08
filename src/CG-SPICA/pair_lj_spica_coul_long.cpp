@@ -1,7 +1,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -21,6 +21,7 @@
 #include "atom.h"
 #include "comm.h"
 #include "error.h"
+#include "ewald_const.h"
 #include "force.h"
 #include "kspace.h"
 #include "memory.h"
@@ -35,18 +36,14 @@
 
 using namespace LAMMPS_NS;
 using namespace LJSPICAParms;
-
-#define EWALD_F 1.12837917
-#define EWALD_P 0.3275911
-#define A1 0.254829592
-#define A2 -0.284496736
-#define A3 1.421413741
-#define A4 -1.453152027
-#define A5 1.061405429
+using namespace EwaldConst;
 
 /* ---------------------------------------------------------------------- */
 
-PairLJSPICACoulLong::PairLJSPICACoulLong(LAMMPS *lmp) : Pair(lmp)
+PairLJSPICACoulLong::PairLJSPICACoulLong(LAMMPS *lmp) :
+    Pair(lmp), cut_lj(nullptr), cut_ljsq(nullptr), epsilon(nullptr), sigma(nullptr), lj1(nullptr),
+    lj2(nullptr), lj3(nullptr), lj4(nullptr), offset(nullptr), lj_type(nullptr), rminsq(nullptr),
+    emin(nullptr)
 {
   ewaldflag = pppmflag = 1;
   respa_enable = 0;
@@ -365,7 +362,7 @@ void PairLJSPICACoulLong::init_style()
 
   cut_coulsq = cut_coul * cut_coul;
 
-  // insure use of KSpace long-range solver, set g_ewald
+  // ensure use of KSpace long-range solver, set g_ewald
 
   if (force->kspace == nullptr) error->all(FLERR, "Pair style requires a KSpace style");
   g_ewald = force->kspace->g_ewald;
@@ -550,8 +547,8 @@ void PairLJSPICACoulLong::write_data_all(FILE *fp)
 
 /* ---------------------------------------------------------------------- */
 
-double PairLJSPICACoulLong::single(int i, int j, int itype, int jtype, double rsq, double factor_coul,
-                                 double factor_lj, double &fforce)
+double PairLJSPICACoulLong::single(int i, int j, int itype, int jtype, double rsq,
+                                   double factor_coul, double factor_lj, double &fforce)
 {
   double r2inv, r, grij, expm2, t, erfc, prefactor;
   double fraction, table, forcecoul, forcelj, phicoul, philj;

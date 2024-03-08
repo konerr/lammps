@@ -1,7 +1,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -16,7 +16,6 @@
 #include "atom.h"
 #include "error.h"
 #include "fix.h"
-#include "fix_adapt.h"
 #include "math_const.h"
 #include "modify.h"
 
@@ -29,8 +28,8 @@ AtomVecSphere::AtomVecSphere(LAMMPS *lmp) : AtomVec(lmp)
 {
   mass_type = PER_ATOM;
   molecular = Atom::ATOMIC;
+  radvary = 0;
 
-  atom->sphere_flag = 1;
   atom->radius_flag = atom->rmass_flag = atom->omega_flag = atom->torque_flag = 1;
 
   // strings with peratom variables to include in each AtomVec method
@@ -58,13 +57,10 @@ AtomVecSphere::AtomVecSphere(LAMMPS *lmp) : AtomVec(lmp)
 
 void AtomVecSphere::process_args(int narg, char **arg)
 {
-  if (narg != 0 && narg != 1) error->all(FLERR, "Illegal atom_style sphere command");
+  if (narg > 1) error->all(FLERR, "Illegal atom_style sphere command");
 
   radvary = 0;
-  if (narg == 1) {
-    radvary = utils::numeric(FLERR, arg[0], true, lmp);
-    if (radvary < 0 || radvary > 1) error->all(FLERR, "Illegal atom_style sphere command");
-  }
+  if (narg == 1) radvary = utils::logical(FLERR, arg[0], true, lmp);
 
   // dynamic particle radius and mass must be communicated every step
 
@@ -86,11 +82,11 @@ void AtomVecSphere::init()
 
   // check if optional radvary setting should have been set to 1
 
-  for (int i = 0; i < modify->nfix; i++)
-    if (strcmp(modify->fix[i]->style, "adapt") == 0) {
-      auto fix = dynamic_cast<FixAdapt *>(modify->fix[i]);
-      if (fix->diamflag && radvary == 0)
-        error->all(FLERR, "Fix adapt changes particle radii but atom_style sphere is not dynamic");
+  if (radvary == 0)
+    for (const auto &ifix : modify->get_fix_by_style("^adapt")) {
+      if (ifix->diam_flag)
+        error->all(FLERR, "Fix {} changes atom radii but atom_style sphere is not dynamic",
+                   ifix->style);
     }
 }
 

@@ -2,7 +2,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -26,7 +26,7 @@
 
 using namespace LAMMPS_NS;
 
-#define RVOUS 1   // 0 for irregular, 1 for all2all
+static constexpr int RVOUS = 1;   // 0 for irregular, 1 for all2all
 
 /* ---------------------------------------------------------------------- */
 
@@ -62,12 +62,11 @@ void Special::build()
   if (me == 0) {
     const double * const special_lj   = force->special_lj;
     const double * const special_coul = force->special_coul;
-    auto mesg = fmt::format("Finding 1-2 1-3 1-4 neighbors ...\n"
-                            "  special bond factors lj:    {:<8} {:<8} {:<8}\n"
-                            "  special bond factors coul:  {:<8} {:<8} {:<8}\n",
-                            special_lj[1],special_lj[2],special_lj[3],
-                            special_coul[1],special_coul[2],special_coul[3]);
-    utils::logmesg(lmp,mesg);
+    utils::logmesg(lmp, "Finding 1-2 1-3 1-4 neighbors ...\n"
+                   "  special bond factors lj:    {:<8} {:<8} {:<8}\n"
+                   "  special bond factors coul:  {:<8} {:<8} {:<8}\n",
+                   special_lj[1],special_lj[2],special_lj[3],
+                   special_coul[1],special_coul[2],special_coul[3]);
   }
 
   // set onefive_flag if special_bonds command set it
@@ -162,7 +161,7 @@ void Special::build()
   if (onefive_flag) {
     onefive_build();
     if (me == 0)
-      utils::logmesg(lmp,fmt::format("{:>6} = max # of 1-5 neighbors\n",maxall));
+      utils::logmesg(lmp,"{:>6} = max # of 1-5 neighbors\n",maxall);
   }
 
   // finish processing the onetwo, onethree, onefour, onefive lists
@@ -857,10 +856,10 @@ void Special::combine()
     utils::logmesg(lmp,"{:>6} = max # of special neighbors\n",atom->maxspecial);
 
   if (lmp->kokkos) {
-    auto  atomKK = dynamic_cast<AtomKokkos*>( atom);
+    auto  atomKK = dynamic_cast<AtomKokkos*>(atom);
     atomKK->modified(Host,SPECIAL_MASK);
     atomKK->sync(Device,SPECIAL_MASK);
-    auto  memoryKK = dynamic_cast<MemoryKokkos*>( memory);
+    auto  memoryKK = dynamic_cast<MemoryKokkos*>(memory);
     memoryKK->grow_kokkos(atomKK->k_special,atom->special,
                         atom->nmax,atom->maxspecial,"atom:special");
     atomKK->modified(Device,SPECIAL_MASK);
@@ -958,7 +957,7 @@ void Special::combine()
 
 void Special::angle_trim()
 {
-  int i,j,k,m;;
+  int i,j,k,m;
 
   int *num_angle = atom->num_angle;
   int *num_dihedral = atom->num_dihedral;

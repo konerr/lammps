@@ -1,7 +1,7 @@
 /* -*- c++ -*- ----------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -24,7 +24,7 @@ class ProcMap : protected Pointers {
 
   void onelevel_grid(int, int *, int *, int, int, int *, int *);
   void twolevel_grid(int, int *, int *, int, int *, int *, int, int, int *, int *);
-  void numa_grid(int, int *, int *, int *);
+  void numa_grid(int, int, int *, int *, int *);
   void custom_grid(char *, int, int *, int *);
   void cart_map(int, int *, int *, int[3][2], int ***);
   void cart_map(int, int *, int, int *, int *, int[3][2], int ***);

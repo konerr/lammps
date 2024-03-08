@@ -1,7 +1,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -36,25 +36,26 @@
 
 #include <cmath>
 #include <cstring>
-#include <vector>
+#include <exception>
 
 using namespace LAMMPS_NS;
 using namespace FixConst;
 
 #define MAXBODY 2    // currently 2 since only linear chains allowed
-#define DELTA 128
-#define TOLERANCE 1.0e-6
-#define EPSILON 1.0e-7
+
+static constexpr double TOLERANCE = 1.0e-6;
+static constexpr double EPSILON = 1.0e-7;
 
 static const char cite_fix_poems[] =
-    "fix poems command:\n\n"
+    "fix poems command: doi:10.1016/j.ijnonlinmec.2008.04.003\n\n"
     "@Article{Mukherjee08,\n"
-    " author = {R. M. Mukherjee, P. S. Crozier, S. J. Plimpton, K. S. Anderson},\n"
-    " title = {Substructured molecular dynamics using multibody dynamics algorithms},\n"
-    " journal = {Intl.~J.~Non-linear Mechanics},\n"
+    " author = {R. M. Mukherjee and P. S. Crozier and S. J. Plimpton and K. S. Anderson},\n"
+    " title = {Substructured Molecular Dynamics Using Multibody Dynamics Algorithms},\n"
+    " journal = {Intl.\\ J.\\ Non-Linear Mechanics},\n"
     " year =    2008,\n"
     " volume =  43,\n"
-    " pages =   {1045--1055}\n"
+    " number =  10,\n"
+    " pages =   {1040--1055}\n"
     "}\n\n";
 
 /* ----------------------------------------------------------------------
@@ -353,7 +354,7 @@ void FixPOEMS::init()
 
   if (earlyflag) {
     bool pflag = false;
-    for (auto ifix : modify->get_fix_list()) {
+    for (auto &ifix : modify->get_fix_list()) {
       if (utils::strmatch(ifix->style, "^poems")) pflag = true;
       if (pflag && (ifix->setmask() & POST_FORCE) && !ifix->rigid_flag)
         if (comm->me == 0)
@@ -364,7 +365,7 @@ void FixPOEMS::init()
 
   // error if npt,nph fix comes before rigid fix
   bool pflag = false;
-  for (auto ifix : modify->get_fix_list()) {
+  for (auto &ifix : modify->get_fix_list()) {
     if (!pflag && utils::strmatch(ifix->style, "np[th]"))
       error->all(FLERR, "POEMS fix must come before NPT/NPH fix");
     if (utils::strmatch(ifix->style, "^poems")) pflag = true;
@@ -854,7 +855,7 @@ void FixPOEMS::pre_neighbor() {}
    count # of degrees-of-freedom removed by fix_poems for atoms in igroup
 ------------------------------------------------------------------------- */
 
-int FixPOEMS::dof(int igroup)
+bigint FixPOEMS::dof(int igroup)
 {
   int groupbit = group->bitmask[igroup];
 
@@ -876,17 +877,17 @@ int FixPOEMS::dof(int igroup)
 
   // remove 3N - 6 dof for each rigid body if at least 2 atoms are in igroup
 
-  int n = 0;
+  bigint n = 0;
   for (int ibody = 0; ibody < nbody; ibody++)
     if (nall[ibody] > 2) n += 3 * nall[ibody] - 6;
 
   // subtract 3 additional dof for each joint if atom is also in igroup
 
-  int m = 0;
+  bigint m = 0;
   for (int i = 0; i < nlocal; i++)
     if (natom2body[i] > 1 && (mask[i] & groupbit)) m += 3 * (natom2body[i] - 1);
-  int mall;
-  MPI_Allreduce(&m, &mall, 1, MPI_INT, MPI_SUM, world);
+  bigint mall;
+  MPI_Allreduce(&m, &mall, 1, MPI_LMP_BIGINT, MPI_SUM, world);
   n += mall;
 
   // delete local memory

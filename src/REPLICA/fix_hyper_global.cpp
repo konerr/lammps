@@ -2,7 +2,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -32,8 +32,8 @@
 using namespace LAMMPS_NS;
 using namespace FixConst;
 
-#define DELTABOND 16384
-#define VECLEN 5
+static constexpr int DELTABOND = 16384;
+static constexpr int VECLEN = 5;
 
 // possible enhancements
 //   should there be a virial contribution from boosted bond?

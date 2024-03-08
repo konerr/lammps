@@ -2,7 +2,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -38,16 +38,15 @@ using namespace LAMMPS_NS;
 using namespace FixConst;
 using namespace MathSpecial;
 
-enum{NONE,HARMONIC};
-enum{LUCY};
+enum { NONE, HARMONIC };
+enum { LUCY };
 
-#define MAXLINE 1024
-#define DELTA 4
+static constexpr int MAXLINE = 1024;
 
 #ifdef DBL_EPSILON
-  #define MY_EPSILON (10.0*DBL_EPSILON)
+static constexpr double MY_EPSILON = 10.0*DBL_EPSILON;
 #else
-  #define MY_EPSILON (10.0*2.220446049250313e-16)
+static constexpr double MY_EPSILON = 10.0*2.220446049250313e-16;
 #endif
 
 #define SparseKinetics_enableIntegralReactions (true)
@@ -249,8 +248,9 @@ void FixRX::post_constructor()
 
   // Assign species names to tmpspecies array and determine the number of unique species
 
-  int n,nwords;
-  char line[MAXLINE],*ptr;
+  int n;
+  char line[MAXLINE] = {'\0'};
+  char *ptr;
   int eof = 0;
   char * word;
 
@@ -270,12 +270,10 @@ void FixRX::post_constructor()
     // strip comment, skip line if blank
 
     if ((ptr = strchr(line,'#'))) *ptr = '\0';
-    nwords = utils::count_words(line);
-    if (nwords == 0) continue;
+    if (utils::count_words(line) == 0) continue;
 
     // words = ptrs to all words in line
 
-    nwords = 0;
     word = strtok(line," \t\n\r\f");
     while (word != nullptr) {
       word = strtok(nullptr, " \t\n\r\f");
@@ -319,9 +317,9 @@ void FixRX::post_constructor()
   newcmd1 += " ghost yes";
   newcmd2 += " ghost yes";
 
-  fix_species = dynamic_cast<FixPropertyAtom *>( modify->add_fix(newcmd1));
+  fix_species = dynamic_cast<FixPropertyAtom *>(modify->add_fix(newcmd1));
   restartFlag = fix_species->restart_reset;
-  fix_species_old = dynamic_cast<FixPropertyAtom *>( modify->add_fix(newcmd2));
+  fix_species_old = dynamic_cast<FixPropertyAtom *>(modify->add_fix(newcmd2));
 
   if (nspecies==0) error->all(FLERR,"There are no rx species specified.");
 
@@ -390,7 +388,6 @@ void FixRX::initSparse()
   int mxprod = 0;
   int mxreac = 0;
   int mxspec = 0;
-  int nIntegral = 0;
   for (int i = 0; i < nreactions; ++i) {
     int nreac_i = 0, nprod_i = 0;
     std::string pstr, rstr;
@@ -430,7 +427,6 @@ void FixRX::initSparse()
     mxreac = std::max( mxreac, nreac_i );
     mxprod = std::max( mxprod, nprod_i );
     mxspec = std::max( mxspec, nreac_i + nprod_i );
-    if (allAreIntegral) nIntegral++;
   }
 
   if (comm->me == 0 && Verbosity > 1) {
@@ -579,9 +575,9 @@ int FixRX::setmask()
 
 void FixRX::init()
 {
-  pairDPDE = dynamic_cast<PairDPDfdtEnergy *>( force->pair_match("dpd/fdt/energy",1));
+  pairDPDE = dynamic_cast<PairDPDfdtEnergy *>(force->pair_match("dpd/fdt/energy",1));
   if (pairDPDE == nullptr)
-    pairDPDE = dynamic_cast<PairDPDfdtEnergy *>( force->pair_match("dpd/fdt/energy/kk",1));
+    pairDPDE = dynamic_cast<PairDPDfdtEnergy *>(force->pair_match("dpd/fdt/energy/kk",1));
 
   if (pairDPDE == nullptr)
     error->all(FLERR,"Must use pair_style dpd/fdt/energy with fix rx");
@@ -787,8 +783,9 @@ void FixRX::read_file(char *file)
 
   // Count the number of reactions from kinetics file
 
-  int n,nwords,ispecies;
-  char line[MAXLINE],*ptr;
+  int n,ispecies;
+  char line[MAXLINE] = {'\0'};
+  char *ptr;
   int eof = 0;
 
   while (true) {
@@ -807,8 +804,7 @@ void FixRX::read_file(char *file)
     // strip comment, skip line if blank
 
     if ((ptr = strchr(line,'#'))) *ptr = '\0';
-    nwords = utils::count_words(line);
-    if (nwords == 0) continue;
+    if (utils::count_words(line) == 0) continue;
 
     nreactions++;
   }
@@ -861,12 +857,10 @@ void FixRX::read_file(char *file)
     // strip comment, skip line if blank
 
     if ((ptr = strchr(line,'#'))) *ptr = '\0';
-    nwords = utils::count_words(line);
-    if (nwords == 0) continue;
+    if (utils::count_words(line) == 0) continue;
 
     // words = ptrs to all words in line
 
-    nwords = 0;
     word = strtok(line," \t\n\r\f");
     while (word != nullptr) {
       tmpStoich = atof(word);

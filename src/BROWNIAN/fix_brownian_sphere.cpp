@@ -1,7 +1,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/ Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -36,12 +36,11 @@ FixBrownianSphere::FixBrownianSphere(LAMMPS *lmp, int narg, char **arg) :
     FixBrownianBase(lmp, narg, arg)
 {
   if (gamma_t_eigen_flag || gamma_r_eigen_flag) {
-    error->all(FLERR, "Illegal fix brownian command.");
+    error->all(FLERR, "Illegal fix brownian/sphere command.");
   }
 
-  if (!gamma_t_flag || !gamma_r_flag) { error->all(FLERR, "Illegal fix brownian command."); }
+  if (!gamma_t_flag || !gamma_r_flag) error->all(FLERR, "Illegal fix brownian/sphere command.");
   if (!atom->mu_flag) error->all(FLERR, "Fix brownian/sphere requires atom attribute mu");
-  if (!atom->sphere_flag) error->all(FLERR, "Fix brownian/sphere requires atom style sphere");
 }
 
 /* ---------------------------------------------------------------------- */
@@ -85,7 +84,7 @@ void FixBrownianSphere::initial_integrate(int /*vflag */)
       initial_integrate_templated<1, 0, 0, 0>();
     }
   }
-  }
+}
 
 /* ---------------------------------------------------------------------- */
 

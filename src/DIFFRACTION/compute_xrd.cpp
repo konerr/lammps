@@ -2,7 +2,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -35,13 +35,13 @@
 
 #include "omp_compat.h"
 using namespace LAMMPS_NS;
-using namespace MathConst;
+using MathConst::MY_PI;
 
 static const char cite_compute_xrd_c[] =
-  "compute_xrd command: doi:10.1088/0965-0393/21/5/055020\n\n"
+  "compute xrd command: doi:10.1088/0965-0393/21/5/055020\n\n"
   "@Article{Coleman13,\n"
-  " author = {S. P. Coleman, D. E. Spearot, L. Capolungo},\n"
-  " title = {Virtual diffraction analysis of Ni [010] symmetric tilt grain boundaries},\n"
+  " author = {S. P. Coleman and D. E. Spearot and L. Capolungo},\n"
+  " title = {Virtual Diffraction Analysis of {Ni} [010] Symmetric Tilt Grain Boundaries},\n"
   " journal = {Modelling and Simulation in Materials Science and Engineering},\n"
   " year =    2013,\n"
   " volume =  21,\n"
@@ -90,8 +90,7 @@ ComputeXRD::ComputeXRD(LAMMPS *lmp, int narg, char **arg) :
         ztype[i] = j;
        }
      }
-    if (ztype[i] == XRDmaxType + 1)
-        error->all(FLERR,"Compute XRD: Invalid ASF atom type");
+    if (ztype[i] == XRDmaxType + 1) error->all(FLERR,"Compute XRD: Invalid ASF atom type {}", arg[iarg]);
     iarg++;
   }
 
@@ -125,7 +124,7 @@ ComputeXRD::ComputeXRD(LAMMPS *lmp, int narg, char **arg) :
       if (iarg+2 > narg) error->all(FLERR,"Illegal Compute XRD Command");
       LP = utils::numeric(FLERR,arg[iarg+1],false,lmp);
 
-      if (!(LP == 1 || LP == 0))
+      if (LP != 1 && LP != 0)
          error->all(FLERR,"Compute XRD: LP must have value of 0 or 1");
       iarg += 2;
 
@@ -262,7 +261,7 @@ void ComputeXRD::init()
   double ang = 0.0;
 
   double convf = 360 / MY_PI;
-  if (radflag ==1) convf = 1;
+  if (radflag == 1) convf = 2;
 
   int n = 0;
   for (int m = 0; m < mmax; m++) {

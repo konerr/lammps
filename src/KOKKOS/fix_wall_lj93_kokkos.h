@@ -1,7 +1,7 @@
 /* -*- c++ -*- ----------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -50,7 +50,6 @@ class FixWallLJ93Kokkos : public FixWallLJ93 {
   typename AT::t_x_array x;
   typename AT::t_f_array f;
   typename AT::t_int_1d mask;
-  typename AT::t_int_scalar d_oneflag;
 };
 
 template <class DeviceType>

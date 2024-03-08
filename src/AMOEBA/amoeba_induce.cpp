@@ -2,7 +2,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/ Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -19,18 +19,19 @@
 #include "comm.h"
 #include "domain.h"
 #include "error.h"
-#include "fft3d_wrap.h"
-#include "fix_store.h"
+#include "fix_store_atom.h"
 #include "math_const.h"
-#include "memory.h"
+#include "math_special.h"
 #include "my_page.h"
 #include "neigh_list.h"
+#include "timer.h"
 
 #include <cmath>
-#include <cstring>
 
 using namespace LAMMPS_NS;
 using namespace MathConst;
+
+using MathSpecial::cube;
 
 enum{INDUCE,RSD,SETUP_AMOEBA,SETUP_HIPPO,KMPOLE,AMGROUP};   // forward comm
 enum{FIELD,ZRSD,TORQUE,UFLD};                               // reverse comm
@@ -40,7 +41,7 @@ enum{GEAR,ASPC,LSQR};
 enum{BUILD,APPLY};
 enum{GORDON1,GORDON2};
 
-#define DEBYE 4.80321    // conversion factor from q-Angs (real units) to Debye
+static constexpr double DEBYE = 4.80321;    // conversion factor from q-Angs (real units) to Debye
 
 /* ----------------------------------------------------------------------
    induce = induced dipole moments via pre-conditioned CG solver
@@ -50,8 +51,7 @@ enum{GORDON1,GORDON2};
 void PairAmoeba::induce()
 {
   bool done;
-  int i,j,m,itype;
-  int iter,maxiter;
+  int i,j,m,itype,iter;
   double polmin;
   double eps,epsold;
   double epsd,epsp;
@@ -156,7 +156,6 @@ void PairAmoeba::induce()
 
   if (poltyp == MUTUAL) {
     done = false;
-    maxiter = 100;
     iter = 0;
     polmin = 0.00000001;
     eps = 100.0;
@@ -366,7 +365,8 @@ void PairAmoeba::induce()
       eps = DEBYE * sqrt(eps/atom->natoms);
 
       if (eps < poleps) done = true;
-      if (eps > epsold) done = true;
+      // also commented out in induce.f of Tinker
+      // if (eps > epsold) done = true;
       if (iter >= politer) done = true;
 
       //  apply a "peek" iteration to the mutual induced dipoles
@@ -382,12 +382,10 @@ void PairAmoeba::induce()
       }
     }
 
-    // if (comm->me == 0) printf("CG iteration count = %d\n",iter);
-
     // terminate the calculation if dipoles failed to converge
     // NOTE: could make this an error
 
-    if (iter >= maxiter || eps > epsold)
+    if (iter >= politer || eps > epsold)
       if (comm->me == 0)
         error->warning(FLERR,"AMOEBA induced dipoles did not converge");
   }
@@ -547,13 +545,19 @@ void PairAmoeba::ufield0c(double **field, double **fieldp)
     }
   }
 
-  // get the reciprocal space part of the mutual field
-
-  if (polar_kspace_flag) umutual1(field,fieldp);
+  double time0, time1, time2;
+  if (timer->has_sync()) MPI_Barrier(world);
+  time0 = platform::walltime();
 
   // get the real space portion of the mutual field
 
   if (polar_rspace_flag) umutual2b(field,fieldp);
+  time1 = platform::walltime();
+
+  // get the reciprocal space part of the mutual field
+
+  if (polar_kspace_flag) umutual1(field,fieldp);
+  time2 = platform::walltime();
 
   // add the self-energy portion of the mutual field
 
@@ -564,6 +568,11 @@ void PairAmoeba::ufield0c(double **field, double **fieldp)
       fieldp[i][j] += term*uinp[i][j];
     }
   }
+
+  // accumulate timing information
+
+  time_mutual_rspace += time1 - time0;
+  time_mutual_kspace += time2 - time1;
 }
 
 /* ----------------------------------------------------------------------
@@ -732,7 +741,7 @@ void PairAmoeba::uscale0b(int mode, double **rsd, double **rsdp,
         damp = pdi * pdamp[jtype];
         if (damp != 0.0) {
           pgamma = MIN(pti,thole[jtype]);
-          damp = -pgamma * pow((r/damp),3.0);
+          damp = -pgamma * cube(r/damp);
           if (damp > -50.0) {
             expdamp = exp(damp);
             scale3 *= 1.0 - expdamp;
@@ -786,7 +795,12 @@ void PairAmoeba::dfield0c(double **field, double **fieldp)
 
   // get the reciprocal space part of the permanent field
 
+  double time0, time1, time2;
+  if (timer->has_sync()) MPI_Barrier(world);
+  time0 = platform::walltime();
+
   if (polar_kspace_flag) udirect1(field);
+  time1 = platform::walltime();
 
   for (i = 0; i < nlocal; i++) {
     for (j = 0; j < 3; j++) {
@@ -797,6 +811,7 @@ void PairAmoeba::dfield0c(double **field, double **fieldp)
   // get the real space portion of the permanent field
 
   if (polar_rspace_flag) udirect2b(field,fieldp);
+  time2 = platform::walltime();
 
   // get the self-energy portion of the permanent field
 
@@ -807,6 +822,11 @@ void PairAmoeba::dfield0c(double **field, double **fieldp)
       fieldp[i][j] += term*rpole[i][j+1];
     }
   }
+
+  // accumulate timing information
+
+  time_direct_kspace += time1 - time0;
+  time_direct_rspace += time2 - time1;
 }
 
 /* ----------------------------------------------------------------------
@@ -843,18 +863,26 @@ void PairAmoeba::umutual1(double **field, double **fieldp)
     }
   }
 
+  double time0, time1;
+
   // gridpre = my portion of 4d grid in brick decomp w/ ghost values
 
-  double ****gridpre = (double ****) ic_kspace->zero();
+  FFT_SCALAR ****gridpre = (FFT_SCALAR ****) ic_kspace->zero();
 
   // map 2 values to grid
 
+  if (timer->has_sync()) MPI_Barrier(world);
+  time0 = platform::walltime();
+
   grid_uind(fuind,fuinp,gridpre);
+
+  time1 = platform::walltime();
+  time_grid_uind += (time1 - time0);
 
   // pre-convolution operations including forward FFT
   // gridfft = my portion of complex 3d grid in FFT decomposition
 
-  double *gridfft = ic_kspace->pre_convolution();
+  FFT_SCALAR *gridfft = ic_kspace->pre_convolution();
 
   // ---------------------
   // convolution operation
@@ -884,11 +912,17 @@ void PairAmoeba::umutual1(double **field, double **fieldp)
   // post-convolution operations including backward FFT
   // gridppost = my portion of 4d grid in brick decomp w/ ghost values
 
-  double ****gridpost = (double ****) ic_kspace->post_convolution();
+  FFT_SCALAR ****gridpost = (FFT_SCALAR ****) ic_kspace->post_convolution();
 
   // get potential
 
+  if (timer->has_sync()) MPI_Barrier(world);
+  time0 = platform::walltime();
+
   fphi_uind(gridpost,fdip_phi1,fdip_phi2,fdip_sum_phi);
+
+  time1 = platform::walltime();
+  time_fphi_uind += (time1 - time0);
 
   // store fractional reciprocal potentials for OPT method
 
@@ -1056,7 +1090,7 @@ void PairAmoeba::udirect1(double **field)
   // gridpre = my portion of 3d grid in brick decomp w/ ghost values
   // zeroed by setup()
 
-  double ***gridpre = (double ***) i_kspace->zero();
+  FFT_SCALAR ***gridpre = (FFT_SCALAR ***) i_kspace->zero();
 
   // map multipole moments to grid
 
@@ -1065,7 +1099,7 @@ void PairAmoeba::udirect1(double **field)
   // pre-convolution operations including forward FFT
   // gridfft = my 1d portion of complex 3d grid in FFT decomp
 
-  double *gridfft = i_kspace->pre_convolution();
+  FFT_SCALAR *gridfft = i_kspace->pre_convolution();
 
   // ---------------------
   // convolution operation
@@ -1110,7 +1144,7 @@ void PairAmoeba::udirect1(double **field)
   // post-convolution operations including backward FFT
   // gridppost = my portion of 3d grid in brick decomp w/ ghost values
 
-  double ***gridpost = (double ***) i_kspace->post_convolution();
+  FFT_SCALAR ***gridpost = (FFT_SCALAR ***) i_kspace->post_convolution();
 
   // get potential
 
@@ -1332,7 +1366,7 @@ void PairAmoeba::udirect2b(double **field, double **fieldp)
             }
           } else {
             pgamma = MIN(pti,thole[jtype]);
-            damp = pgamma * pow(r/damp,3.0);
+            damp = pgamma * cube(r/damp);
             if (damp < 50.0) {
               expdamp = exp(-damp);
               scale3 = 1.0 - expdamp;
@@ -1384,7 +1418,7 @@ void PairAmoeba::udirect2b(double **field, double **fieldp)
           damp = pdi * pdamp[jtype];
           if (damp != 0.0) {
             pgamma = MIN(pti,thole[jtype]);
-            damp = pgamma * pow(r/damp,3.0);
+            damp = pgamma * cube(r/damp);
             if (damp < 50.0) {
               expdamp = exp(-damp);
               scale3 = 1.0 - expdamp;

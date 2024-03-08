@@ -2,7 +2,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -22,13 +22,14 @@
 #include "error.h"
 #include "memory.h"
 #include "special.h"
+#include "label_map.h"
 
 #include <cstring>
 
 using namespace LAMMPS_NS;
 
-#define LB_FACTOR 1.1
-#define EPSILON   1.0e-6
+static constexpr double LB_FACTOR = 1.1;
+static constexpr double EPSILON =   1.0e-6;
 
 /* ---------------------------------------------------------------------- */
 
@@ -47,14 +48,24 @@ void Replicate::command(int narg, char **arg)
   int me = comm->me;
   int nprocs = comm->nprocs;
 
-  if (me == 0) utils::logmesg(lmp,"Replicating atoms ...\n");
-
   // nrep = total # of replications
 
   int nx = utils::inumeric(FLERR,arg[0],false,lmp);
   int ny = utils::inumeric(FLERR,arg[1],false,lmp);
   int nz = utils::inumeric(FLERR,arg[2],false,lmp);
-  int nrep = nx*ny*nz;
+  if ((nx <= 0) || (ny <= 0) || (nz <= 0))
+    error->all(FLERR, "Illegal replication grid {}x{}x{}. All replications must be > 0",
+               nx, ny, nz);
+
+  bigint nrepbig = (bigint) nx * ny * nz;
+  if (nrepbig > MAXSMALLINT)
+    error->all(FLERR, "Total # of replica is too large: {}x{}x{} = {}. "
+               "Please use replicate multiple times", nx, ny, nz, nrepbig);
+
+  int nrep = (int) nrepbig;
+  if (me == 0)
+    utils::logmesg(lmp, "Replication is creating a {}x{}x{} = {} times larger system...\n",
+                   nx, ny, nz, nrep);
 
   int bbox_flag = 0;
   if (narg == 4)
@@ -223,6 +234,15 @@ void Replicate::command(int narg, char **arg)
   atom->extra_improper_per_atom = old->extra_improper_per_atom;
   atom->maxspecial = old->maxspecial;
 
+  if (old->labelmapflag) {
+    atom->add_label_map();
+    atom->lmap->merge_lmap(old->lmap, Atom::ATOM);
+    atom->lmap->merge_lmap(old->lmap, Atom::BOND);
+    atom->lmap->merge_lmap(old->lmap, Atom::ANGLE);
+    atom->lmap->merge_lmap(old->lmap, Atom::DIHEDRAL);
+    atom->lmap->merge_lmap(old->lmap, Atom::IMPROPER);
+  }
+
   // store old simulation box
 
   int triclinic = domain->triclinic;
@@ -276,7 +296,7 @@ void Replicate::command(int narg, char **arg)
 
   // set bounds for my proc
   // if periodic and I am lo/hi proc, adjust bounds by EPSILON
-  // insures all replicated atoms will be owned even with round-off
+  // ensures all replicated atoms will be owned even with round-off
 
   double epsilon[3];
   if (triclinic) epsilon[0] = epsilon[1] = epsilon[2] = EPSILON;

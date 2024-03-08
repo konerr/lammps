@@ -1,7 +1,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -27,7 +27,6 @@
 #include "memory.h"
 #include "modify.h"
 #include "neigh_list.h"
-#include "neigh_request.h"
 #include "neighbor.h"
 #include "update.h"
 
@@ -436,10 +435,10 @@ void PairGranHookeHistory::init_style()
 
   // error and warning checks
 
-  if (!atom->radius_flag || !atom->rmass_flag)
-    error->all(FLERR, "Pair granular requires atom attributes radius, rmass");
+  if (!atom->radius_flag || !atom->rmass_flag || !atom->omega_flag)
+    error->all(FLERR, "Pair gran/h* requires atom attributes radius, rmass, omega");
   if (comm->ghost_velocity == 0)
-    error->all(FLERR, "Pair granular requires ghost atoms store velocity");
+    error->all(FLERR, "Pair gran/h* requires ghost atoms store velocity");
 
   // need a granular neighbor list
 
@@ -690,7 +689,7 @@ double PairGranHookeHistory::single(int i, int j, int /*itype*/, int /*jtype*/, 
   mi = rmass[i];
   mj = rmass[j];
   if (fix_rigid) {
-    // NOTE: insure mass_rigid is current for owned+ghost atoms?
+    // NOTE: ensure mass_rigid is current for owned+ghost atoms?
     if (mass_rigid[i] > 0.0) mi = mass_rigid[i];
     if (mass_rigid[j] > 0.0) mj = mass_rigid[j];
   }

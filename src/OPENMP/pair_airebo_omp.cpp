@@ -2,7 +2,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    This software is distributed under the GNU General Public License.
 
@@ -34,12 +34,11 @@
 using namespace LAMMPS_NS;
 using namespace MathSpecial;
 
-#define TOL 1.0e-9
+static constexpr double TOL = 1.0e-9;
 
 /* ---------------------------------------------------------------------- */
 
-PairAIREBOOMP::PairAIREBOOMP(LAMMPS *lmp) :
-  PairAIREBO(lmp), ThrOMP(lmp, THR_PAIR)
+PairAIREBOOMP::PairAIREBOOMP(LAMMPS *lmp) : PairAIREBO(lmp), ThrOMP(lmp, THR_PAIR)
 {
   suffix_flag |= Suffix::OMP;
   respa_enable = 0;
@@ -1121,12 +1120,9 @@ double PairAIREBOOMP::bondorder_thr(int i, int j, double rij[3], double rijmag,
       cosjik = MIN(cosjik,1.0);
       cosjik = MAX(cosjik,-1.0);
 
-      dcosjikdri[0] = ((rij[0]+rik[0])*invrijkm) -
-        (cosjik*((rij[0]*invrijm2)+(rik[0]*invrikm2)));
-      dcosjikdri[1] = ((rij[1]+rik[1])*invrijkm) -
-        (cosjik*((rij[1]*invrijm2)+(rik[1]*invrikm2)));
-      dcosjikdri[2] = ((rij[2]+rik[2])*invrijkm) -
-        (cosjik*((rij[2]*invrijm2)+(rik[2]*invrikm2)));
+      dcosjikdri[0] = ((rij[0]+rik[0])*invrijkm) - (cosjik*((rij[0]*invrijm2)+(rik[0]*invrikm2)));
+      dcosjikdri[1] = ((rij[1]+rik[1])*invrijkm) - (cosjik*((rij[1]*invrijm2)+(rik[1]*invrikm2)));
+      dcosjikdri[2] = ((rij[2]+rik[2])*invrijkm) - (cosjik*((rij[2]*invrijm2)+(rik[2]*invrikm2)));
       dcosjikdrk[0] = (-rij[0]*invrijkm) + (cosjik*(rik[0]*invrikm2));
       dcosjikdrk[1] = (-rij[1]*invrijkm) + (cosjik*(rik[1]*invrikm2));
       dcosjikdrk[2] = (-rij[2]*invrijkm) + (cosjik*(rik[2]*invrikm2));
@@ -1546,7 +1542,7 @@ double PairAIREBOOMP::bondorder_thr(int i, int j, double rij[3], double rijmag,
             atoml = REBO_neighs_j[l];
             atom4 = atoml;
             ltype = map[type[atoml]];
-            if (!(atoml == atomi || atoml == atomk)) {
+            if (atoml != atomi && atoml != atomk) {
               r34[0] = x[atom3][0]-x[atom4][0];
               r34[1] = x[atom3][1]-x[atom4][1];
               r34[2] = x[atom3][2]-x[atom4][2];
@@ -2048,7 +2044,7 @@ double PairAIREBOOMP::bondorderLJ_thr(int i, int j, double /* rij_mod */[3], dou
             atoml = REBO_neighs_j[l];
             atom4 = atoml;
             ltype = map[type[atoml]];
-            if (!(atoml == atomi || atoml == atomk)) {
+            if (atoml != atomi && atoml != atomk) {
               r34[0] = x[atom3][0]-x[atom4][0];
               r34[1] = x[atom3][1]-x[atom4][1];
               r34[2] = x[atom3][2]-x[atom4][2];
@@ -2496,7 +2492,7 @@ double PairAIREBOOMP::bondorderLJ_thr(int i, int j, double /* rij_mod */[3], dou
               atoml = REBO_neighs_j[l];
               atom4 = atoml;
               ltype = map[type[atoml]];
-              if (!(atoml == atomi || atoml == atomk)) {
+              if (atoml != atomi && atoml != atomk) {
                 r34[0] = x[atom3][0]-x[atom4][0];
                 r34[1] = x[atom3][1]-x[atom4][1];
                 r34[2] = x[atom3][2]-x[atom4][2];

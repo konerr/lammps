@@ -1,7 +1,7 @@
 /* -*- c++ -*- ----------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -73,9 +73,8 @@ class FixNPTCauchy : public Fix {
   double drag, tdrag_factor;     // drag factor on particle thermostat
   double pdrag_factor;           // drag factor on barostat
   int kspace_flag;               // 1 if KSpace invoked, 0 if not
-  int nrigid;                    // number of rigid fixes
   int dilate_group_bit;          // mask for dilation group
-  int *rfix;                     // indices of rigid fixes
+  std::vector<Fix *> rfix;       // indices of rigid fixes
   char *id_dilate;               // group name to dilate
   class Irregular *irregular;    // for migrating atoms after box flips
 
@@ -118,8 +117,6 @@ class FixNPTCauchy : public Fix {
   int eta_mass_flag;      // 1 if eta_mass updated, 0 if not.
   int omega_mass_flag;    // 1 if omega_mass updated, 0 if not.
   int etap_mass_flag;     // 1 if etap_mass updated, 0 if not.
-  int dipole_flag;        // 1 if dipole is updated, 0 if not.
-  int dlm_flag;           // 1 if using the DLM rotational integrator, 0 if not
 
   int scaleyz;     // 1 if yz scaled with lz
   int scalexz;     // 1 if xz scaled with lz
@@ -149,24 +146,23 @@ class FixNPTCauchy : public Fix {
   void nh_omega_dot();
 
   // Implementation of CauchyStat
-  char *id_store;                // fix id of the STORE fix for retaining data
-  class FixStore *init_store;    // fix pointer to STORE fix
-  double H0[3][3];               // shape matrix for the undeformed cell
-  double h_old[6];               // previous time step shape matrix for
-                                 // the undeformed cell
-  double invH0[3][3];            // inverse of H0;
-  double CSvol0;                 // volume of undeformed cell
-  double setPK[3][3];            // current set values of the PK stress
-                                 // (this is modified until the cauchy
-                                 // stress converges)
-  double alpha;                  // integration parameter for the cauchystat
-  int initPK;                    // 1 if setPK needs to be initialized either
-                                 // from cauchy or restart, else 0
-  int restartPK;                 // Read PK stress from the previous run
-  int restart_stored;            // values of PK stress from the previous step stored
-  int initRUN;                   // 0 if run not initialized
-                                 // (pressure->vector not computed yet),
-                                 // else 1 (pressure->vector available)
+  char *id_store;                      // fix id of the STORE fix for retaining data
+  class FixStoreGlobal *init_store;    // fix pointer to STORE fix
+  double H0[3][3];                     // shape matrix for the undeformed cell
+  double h_old[6];                     // previous time step shape matrix for
+                                       // the undeformed cell
+  double invH0[3][3];                  // inverse of H0;
+  double CSvol0;                       // volume of undeformed cell
+  double setPK[3][3];                  // current set values of the PK stress
+                                       // (this is modified until the cauchy
+                                       // stress converges)
+  double alpha;                        // integration parameter for the cauchystat
+  int initPK;                          // 1 if setPK needs to be initialized either
+                                       // from cauchy or restart, else 0
+  int restartPK;                       // Read PK stress from the previous run
+  int initRUN;                         // 0 if run not initialized
+                                       // (pressure->vector not computed yet),
+                                       // else 1 (pressure->vector available)
 
   void CauchyStat_init();
   void CauchyStat_cleanup();

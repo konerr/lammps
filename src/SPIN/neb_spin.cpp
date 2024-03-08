@@ -2,7 +2,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -44,16 +44,17 @@
 
 #include <cmath>
 #include <cstring>
+#include <exception>
 
 using namespace LAMMPS_NS;
 
 static const char cite_neb_spin[] =
-  "neb/spin command:\n\n"
+  "neb/spin command: doi:10.1016/j.cpc.2015.07.001\n\n"
   "@article{bessarab2015method,\n"
-  "title={Method for finding mechanism and activation energy of "
-  "magnetic transitions, applied to skyrmion and antivortex "
-  "annihilation},\n"
-  "author={Bessarab, P.F. and Uzdin, V.M. and J{\'o}nsson, H.},\n"
+  "title={Method for Finding Mechanism and Activation Energy of\n"
+  "  Magnetic Transitions, Applied to Skyrmion and Antivortex\n"
+  "  Annihilation},\n"
+  "author={Bessarab, P. F. and Uzdin, V. M. and J{\'o}nsson, H.},\n"
   "journal={Computer Physics Communications},\n"
   "volume={196},\n"
   "pages={335--347},\n"
@@ -62,10 +63,11 @@ static const char cite_neb_spin[] =
   "doi={10.1016/j.cpc.2015.07.001}\n"
   "}\n\n";
 
-#define MAXLINE 256
-#define CHUNK 1024
+static constexpr int MAXLINE = 256;
+static constexpr int CHUNK = 1024;
+
 // 8 attributes: tag, spin norm, position (3), spin direction (3)
-#define ATTRIBUTE_PERLINE 8
+static constexpr int ATTRIBUTE_PERLINE = 8;
 
 /* ---------------------------------------------------------------------- */
 
@@ -172,7 +174,7 @@ void NEBSpin::run()
   if (fixes.size() != 1)
     error->all(FLERR,"NEBSpin requires use of exactly one fix neb/spin instance");
 
-  fneb = dynamic_cast<FixNEBSpin *>( fixes[0]);
+  fneb = dynamic_cast<FixNEBSpin *>(fixes[0]);
   if (verbose) numall =7;
   else  numall = 4;
   memory->create(all,nreplica,numall,"neb:all");
@@ -243,7 +245,7 @@ void NEBSpin::run()
   // perform regular NEBSpin for n1steps or until replicas converge
   // retrieve PE values from fix NEBSpin and print every nevery iterations
   // break out of while loop early if converged
-  // damped dynamic min styles insure all replicas converge together
+  // damped dynamic min styles ensure all replicas converge together
 
   timer->init();
   timer->barrier_start();
@@ -331,7 +333,7 @@ void NEBSpin::run()
   // perform climbing NEBSpin for n2steps or until replicas converge
   // retrieve PE values from fix NEBSpin and print every nevery iterations
   // break induced if converged
-  // damped dynamic min styles insure all replicas converge together
+  // damped dynamic min styles ensure all replicas converge together
 
   timer->init();
   timer->barrier_start();
@@ -374,7 +376,7 @@ void NEBSpin::readfile(char *file, int flag)
   int i,nchunk,eofflag,nlines;
   tagint tag;
   char *eof,*start,*next,*buf;
-  char line[MAXLINE];
+  char line[MAXLINE] = {'\0'};
   double musp,xx,yy,zz,spx,spy,spz;
 
   if (me_universe == 0 && universe->uscreen)

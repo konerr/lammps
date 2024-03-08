@@ -1,7 +1,7 @@
 /* -*- c++ -*- -----------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -182,7 +182,7 @@ class FixLbFluid : public Fix {
   void calc_fluidforceII(void);
   void calc_fluidforceweight(void);
 
-  int adjust_dof_fix();
+  bigint adjust_dof_fix();
   double dof_compute();
 
   /* nanopit parameters */

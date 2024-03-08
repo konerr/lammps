@@ -2,7 +2,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -33,11 +33,12 @@
 #include "update.h"
 
 #include <cmath>
+#include <cstring>
 
 using namespace LAMMPS_NS;
 using namespace FixConst;
 
-#define BIG 1.0e20
+static constexpr double BIG = 1.0e20;
 
 /* ---------------------------------------------------------------------- */
 
@@ -237,7 +238,7 @@ void FixMolSwap::pre_exchange()
 
   if (next_reneighbor != update->ntimestep) return;
 
-  // insure current system is ready to compute energy
+  // ensure current system is ready to compute energy
 
   if (domain->triclinic) domain->x2lamda(atom->nlocal);
   domain->pbc();

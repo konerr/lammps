@@ -2,7 +2,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -32,12 +32,13 @@
 
 #include <cmath>
 #include <cstring>
+#include <exception>
 
 using namespace LAMMPS_NS;
 using namespace FixConst;
 
-#define CHUNK 1000
-#define MAXLINE 256
+static constexpr int CHUNK = 1000;
+static constexpr int MAXLINE = 256;
 
 /* ---------------------------------------------------------------------- */
 
@@ -167,7 +168,7 @@ void FixTMD::init()
   dtv = update->dt;
   dtf = update->dt * force->ftm2v;
   if (utils::strmatch(update->integrate_style,"^respa"))
-    step_respa = (dynamic_cast<Respa *>( update->integrate))->step;
+    step_respa = (dynamic_cast<Respa *>(update->integrate))->step;
 }
 
 /* ---------------------------------------------------------------------- */

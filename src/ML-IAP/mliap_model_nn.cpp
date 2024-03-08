@@ -1,7 +1,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -28,7 +28,7 @@
 
 using namespace LAMMPS_NS;
 
-#define MAXLINE 1024
+static constexpr int MAXLINE = 1024;
 
 /* ---------------------------------------------------------------------- */
 
@@ -75,7 +75,8 @@ void MLIAPModelNN::read_coeffs(char *coefffilename)
                  utils::getsyserror());
   }
 
-  char line[MAXLINE], *ptr;
+  char line[MAXLINE] = {'\0'};
+  char *ptr;
   int n, eof = 0, nwords = 0;
   while (nwords == 0) {
     if (comm->me == 0) {

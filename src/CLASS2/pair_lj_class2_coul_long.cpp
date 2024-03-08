@@ -1,7 +1,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -16,6 +16,7 @@
 #include "atom.h"
 #include "comm.h"
 #include "error.h"
+#include "ewald_const.h"
 #include "force.h"
 #include "kspace.h"
 #include "math_const.h"
@@ -29,15 +30,8 @@
 #include <cstring>
 
 using namespace LAMMPS_NS;
+using namespace EwaldConst;
 using namespace MathConst;
-
-static constexpr double EWALD_F = 1.12837917;
-static constexpr double EWALD_P = 0.3275911;
-static constexpr double A1 = 0.254829592;
-static constexpr double A2 = -0.284496736;
-static constexpr double A3 = 1.421413741;
-static constexpr double A4 = -1.453152027;
-static constexpr double A5 = 1.061405429;
 
 /* ---------------------------------------------------------------------- */
 
@@ -688,7 +682,7 @@ void PairLJClass2CoulLong::init_style()
   else
     cut_respa = nullptr;
 
-  // insure use of KSpace long-range solver, set g_ewald
+  // ensure use of KSpace long-range solver, set g_ewald
 
   if (force->kspace == nullptr) error->all(FLERR, "Pair style requires a KSpace style");
   g_ewald = force->kspace->g_ewald;
@@ -711,6 +705,7 @@ double PairLJClass2CoulLong::init_one(int i, int j)
         pow(sigma[j][j], 3.0) / (pow(sigma[i][i], 6.0) + pow(sigma[j][j], 6.0));
     sigma[i][j] = pow((0.5 * (pow(sigma[i][i], 6.0) + pow(sigma[j][j], 6.0))), 1.0 / 6.0);
     cut_lj[i][j] = mix_distance(cut_lj[i][i], cut_lj[j][j]);
+    did_mix = true;
   }
 
   double cut = MAX(cut_lj[i][j], cut_coul);

@@ -2,7 +2,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -21,6 +21,7 @@
 #include "atom_kokkos.h"
 #include "atom_masks.h"
 #include "error.h"
+#include "ewald_const.h"
 #include "force.h"
 #include "kokkos.h"
 #include "memory_kokkos.h"
@@ -34,18 +35,7 @@
 #include <cstring>
 
 using namespace LAMMPS_NS;
-
-#define KOKKOS_CUDA_MAX_THREADS 256
-#define KOKKOS_CUDA_MIN_BLOCKS 8
-
-
-#define EWALD_F   1.12837917
-#define EWALD_P   0.3275911
-#define A1        0.254829592
-#define A2       -0.284496736
-#define A3        1.421413741
-#define A4       -1.453152027
-#define A5        1.061405429
+using namespace EwaldConst;
 
 /* ---------------------------------------------------------------------- */
 
@@ -217,9 +207,7 @@ compute_evdwl(const F_FLOAT& rsq, const int& /*i*/, const int& /*j*/,
       (cut_ljsq + 2.0*rsq - 3.0*cut_lj_innersq) / denom_lj;
     englj *= switch1;
   }
-
   return englj;
-
 }
 
 /* ----------------------------------------------------------------------
@@ -447,9 +435,9 @@ void PairLJCharmmCoulLongKokkos<DeviceType>::init_style()
 
   neighflag = lmp->kokkos->neighflag;
   auto request = neighbor->find_request(this);
-  request->set_kokkos_host(std::is_same<DeviceType,LMPHostType>::value &&
-                           !std::is_same<DeviceType,LMPDeviceType>::value);
-  request->set_kokkos_device(std::is_same<DeviceType,LMPDeviceType>::value);
+  request->set_kokkos_host(std::is_same_v<DeviceType,LMPHostType> &&
+                           !std::is_same_v<DeviceType,LMPDeviceType>);
+  request->set_kokkos_device(std::is_same_v<DeviceType,LMPDeviceType>);
   if (neighflag == FULL) request->enable_full();
 }
 
@@ -491,4 +479,3 @@ template class PairLJCharmmCoulLongKokkos<LMPDeviceType>;
 template class PairLJCharmmCoulLongKokkos<LMPHostType>;
 #endif
 }
-

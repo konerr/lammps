@@ -2,7 +2,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -22,7 +22,6 @@
 #include "compute.h"
 #include "domain.h"
 #include "error.h"
-#include "modify.h"
 
 #include <cmath>
 
@@ -33,7 +32,7 @@ using namespace FixConst;
 enum{NOBIAS,BIAS};
 enum{ISO,ANISO,TRICLINIC};
 
-#define TILTMAX 1.5
+static constexpr double TILTMAX = 1.5;
 
 typedef struct { double x,y,z; } dbl3_t;
 
@@ -68,9 +67,7 @@ void FixNHOMP::remap()
         domain->x2lamda(x[i],x[i]);
   }
 
-  if (nrigid)
-    for (int i = 0; i < nrigid; i++)
-      modify->fix[rfix[i]]->deform(0);
+  for (auto &ifix : rfix) ifix->deform(0);
 
   // reset global and local box to new size/shape
 
@@ -218,9 +215,7 @@ void FixNHOMP::remap()
         domain->lamda2x(x[i],x[i]);
   }
 
-  if (nrigid)
-    for (int i = 0; i < nrigid; i++)
-      modify->fix[rfix[i]]->deform(1);
+  for (auto &ifix : rfix) ifix->deform(1);
 }
 
 

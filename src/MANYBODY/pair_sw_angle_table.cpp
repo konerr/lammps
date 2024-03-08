@@ -2,7 +2,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -26,7 +26,6 @@
 #include "math_const.h"
 #include "memory.h"
 #include "neigh_list.h"
-#include "neighbor.h"
 #include "table_file_reader.h"
 #include "potential_file_reader.h"
 
@@ -39,7 +38,7 @@ using MathConst::DEG2RAD;
 using MathConst::MY_PI;
 using MathConst::RAD2DEG;
 
-#define DELTA 4
+static constexpr int DELTA = 4;
 
 enum { LINEAR, SPLINE };
 

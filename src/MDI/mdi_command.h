@@ -1,7 +1,7 @@
 /* -*- c++ -*- ----------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/ Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -21,7 +21,7 @@ CommandStyle(mdi,MDICommand);
 #define LMP_MDI_COMMAND_H
 
 #include "command.h"
-#include "mdi.h"
+#include <mdi.h>
 
 namespace LAMMPS_NS {
 

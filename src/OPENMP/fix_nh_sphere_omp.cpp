@@ -2,7 +2,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -28,7 +28,7 @@ using namespace FixConst;
 
 enum{NOBIAS,BIAS};
 
-#define INERTIA 0.4          // moment of inertia prefactor for sphere
+static constexpr double INERTIA = 0.4;          // moment of inertia prefactor for sphere
 
 typedef struct { double x,y,z; } dbl3_t;
 
@@ -37,8 +37,8 @@ typedef struct { double x,y,z; } dbl3_t;
 FixNHSphereOMP::FixNHSphereOMP(LAMMPS *lmp, int narg, char **arg) :
   FixNHOMP(lmp, narg, arg)
 {
-  if (!atom->sphere_flag)
-    error->all(FLERR,"Fix nvt/nph/npt sphere requires atom style sphere");
+  if (!atom->omega_flag) error->all(FLERR,"Fix {} requires atom attribute omega", style);
+  if (!atom->radius_flag) error->all(FLERR,"Fix {} requires atom attribute radius", style);
 }
 
 /* ---------------------------------------------------------------------- */

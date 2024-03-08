@@ -1,7 +1,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    This software is distributed under the GNU General Public License.
 
@@ -28,8 +28,8 @@ using namespace LAMMPS_NS;
 
 static constexpr int leadDimInteractionList = 64;
 
-#define GRIDDENSITY 8000
-#define GRIDSTART 0.1
+static constexpr int GRIDDENSITY = 8000;
+static constexpr double GRIDSTART = 0.1;
 
 /* ---------------------------------------------------------------------- */
 

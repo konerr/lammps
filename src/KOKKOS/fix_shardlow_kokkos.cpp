@@ -2,7 +2,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -43,12 +43,12 @@
 #include "domain.h"
 #include "error.h"
 #include "force.h"
-#include "memory_kokkos.h"
 #include "neigh_list_kokkos.h"
 #include "neigh_request.h"
 #include "neighbor.h"
 #include "npair_ssa_kokkos.h"
 #include "pair_dpd_fdt_energy_kokkos.h"
+#include "random_external_state.h"
 #include "update.h"
 
 #include <cmath>
@@ -57,8 +57,8 @@ using namespace LAMMPS_NS;
 using namespace FixConst;
 using namespace random_external_state;
 
-#define EPSILON 1.0e-10
-#define EPSILON_SQUARED ((EPSILON) * (EPSILON))
+static constexpr double EPSILON = 1.0e-10;
+static constexpr double EPSILON_SQUARED = EPSILON * EPSILON;
 
 /* ---------------------------------------------------------------------- */
 
@@ -128,9 +128,9 @@ void FixShardlowKokkos<DeviceType>::init()
   // adjust neighbor list request for KOKKOS
 
   auto request = neighbor->find_request(this);
-  request->set_kokkos_host(std::is_same<DeviceType,LMPHostType>::value &&
-                           !std::is_same<DeviceType,LMPDeviceType>::value);
-  request->set_kokkos_device(std::is_same<DeviceType,LMPDeviceType>::value);
+  request->set_kokkos_host(std::is_same_v<DeviceType,LMPHostType> &&
+                           !std::is_same_v<DeviceType,LMPDeviceType>);
+  request->set_kokkos_device(std::is_same_v<DeviceType,LMPDeviceType>);
 
   int ntypes = atom->ntypes;
   k_params = Kokkos::DualView<params_ssa**,Kokkos::LayoutRight,DeviceType>
@@ -596,7 +596,7 @@ void FixShardlowKokkos<DeviceType>::initial_integrate(int /*vflag*/)
     for (int i = 0; i < maxWorkItemCt; ++i) {
       es_genNextParallelState(serial_rand_state, h_rand_state(i));
     }
-    deep_copy(d_rand_state,h_rand_state);
+    Kokkos::deep_copy(d_rand_state,h_rand_state);
 
     maxRNG = maxWorkItemCt;
   }
@@ -606,8 +606,8 @@ void FixShardlowKokkos<DeviceType>::initial_integrate(int /*vflag*/)
     for (int j = 0; j < 3; ++j)
       h_counters(i,j) = 0;
   for (int i = 0; i < 32; ++i) h_hist[i] = 0;
-  deep_copy(d_counters, h_counters);
-  deep_copy(d_hist, h_hist);
+  Kokkos::deep_copy(d_counters, h_counters);
+  Kokkos::deep_copy(d_hist, h_hist);
 #endif
 
   //theta_ij_inv = 1.0/k_pairDPD->temperature; // independent of i,j

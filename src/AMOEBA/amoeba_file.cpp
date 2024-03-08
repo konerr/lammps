@@ -2,7 +2,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel ator
    https://www.lammps.org/ Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -17,34 +17,31 @@
 #include "comm.h"
 #include "domain.h"
 #include "error.h"
-#include "force.h"
 #include "memory.h"
-#include "utils.h"
 #include "tokenizer.h"
 
 #include <cmath>
 #include <cstring>
-#include <cctype>
 
 using namespace LAMMPS_NS;
 
-enum{UNKNOWN,FFIELD,LITERATURE,ATOMTYPE,VDWL,VDWLPAIR,BSTRETCH,SBEND,ABEND,
-     PAULI,DISPERSION,UB,OUTPLANE,TORSION,PITORSION,ATOMMULT,
-     QPENETRATION,DIPPOLAR,QTRANSFER,END_OF_FILE};
-enum{ALLINGER,BUFFERED_14_7};
-enum{ARITHMETIC,GEOMETRIC,CUBIC_MEAN,R_MIN,SIGMA,DIAMETER,HARMONIC,HHG,W_H};
-enum{MUTUAL,OPT,TCG,DIRECT};
-enum{NOFRAME,ZONLY,ZTHENX,BISECTOR,ZBISECT,THREEFOLD};
-enum{GEAR,ASPC,LSQR};
+enum { UNKNOWN, FFIELD, LITERATURE, ATOMTYPE, VDWL, VDWLPAIR, BSTRETCH, SBEND, ABEND,
+  PAULI, DISPERSION, UB, OUTPLANE, TORSION, PITORSION, ATOMMULT, QPENETRATION, DIPPOLAR,
+  QTRANSFER, END_OF_FILE };
+enum { ALLINGER, BUFFERED_14_7 };
+enum { ARITHMETIC, GEOMETRIC, CUBIC_MEAN, R_MIN, SIGMA, DIAMETER, HARMONIC, HHG, W_H };
+enum { MUTUAL, OPT, TCG, DIRECT };
+enum { NOFRAME, ZONLY, ZTHENX, BISECTOR, ZBISECT, THREEFOLD };
+enum { GEAR, ASPC, LSQR };
 
-#define MAXLINE 65536              // crazy big for TORSION-TORSION section
-#define MAX_TYPE_PER_GROUP 6       // max types per AMOEBA group
-#define MAX_FRAME_PER_TYPE 32      // max multipole frames for any AMOEBA type
+static constexpr int MAXLINE = 65536;             // crazy big for TORSION-TORSION section
+static constexpr int MAX_TYPE_PER_GROUP = 6;     // max types per AMOEBA group
+static constexpr int MAX_FRAME_PER_TYPE = 32;    // max multipole frames for any AMOEBA type
 
-#define DELTA_TYPE_CLASS 32
-#define DELTA_VDWL_PAIR 16
+static constexpr int DELTA_TYPE_CLASS = 32;
+static constexpr int DELTA_VDWL_PAIR = 16;
 
-#define BOHR 0.52917721067         // Bohr in Angstroms
+static constexpr double BOHR = 0.52917721067;    // Bohr in Angstroms
 
 // methods to read, parse, and store info from force field file
 
@@ -82,7 +79,7 @@ void PairAmoeba::read_prmfile(char *filename)
 
   int me = comm->me;
   FILE *fptr;
-  char line[MAXLINE];
+  char line[MAXLINE] = {'\0'};
 
   if (me == 0) {
     fptr = utils::open_potential(filename, lmp, nullptr);
@@ -182,8 +179,7 @@ void PairAmoeba::read_prmfile(char *filename)
       for (int i = 1; i <= n_amtype; i++) nmultiframe[i] = 0;
     }
 
-    char next[MAXLINE];
-    next[0] = '\0';
+    char next[MAXLINE] = {'\0'};
     bool has_next = false;
     int n;
     while (true) {
@@ -384,7 +380,7 @@ void PairAmoeba::read_keyfile(char *filename)
 
   int me = comm->me;
   FILE *fptr;
-  char line[MAXLINE];
+  char line[MAXLINE] = {'\0'};
   if (me == 0) {
     fptr = utils::open_potential(filename, lmp, nullptr);
     if (fptr == nullptr)
@@ -416,7 +412,7 @@ void PairAmoeba::read_keyfile(char *filename)
 
     const auto words = Tokenizer(trimmed).as_vector();
     const int nwords = words.size();
-    const auto keyword = words[0];
+    const auto &keyword = words[0];
 
     if (utils::strmatch(keyword, "^[^a-z]+")) {
       ;    // ignore keywords that do not start with text

@@ -2,7 +2,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -29,8 +29,6 @@
 #include "suffix.h"
 using namespace LAMMPS_NS;
 using namespace MathSpecial;
-
-#define SMALL 0.001
 
 /* ---------------------------------------------------------------------- */
 
@@ -140,7 +138,7 @@ void AngleCosinePeriodicOMP::eval(int nfrom, int nto, ThrData * const thr)
     tn = 1.0;
     tn_1 = 1.0;
     tn_2 = 0.0;
-    un = 1.0;
+    un = (m==1) ? 2.0 : 1.0;
     un_1 = 2.0;
     un_2 = 0.0;
 

@@ -2,7 +2,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -633,9 +633,8 @@ namespace overloaded {
     compared to original code.
    ---------------------------------------------------------------------- */
 
-#define CARBON 0
-#define HYDROGEN 1
-#define TOL 1.0e-9
+enum { CARBON, HYDROGEN };
+static constexpr double TOL = 1.0e-9;
 
 template<typename T>
 inline T fmin_nonan(T a, T b) {
@@ -905,7 +904,7 @@ inline flt_t frebo_pij(KernelArgsAIREBOT<flt_t,acc_t> * ka, int i, int j,
       flt_t rho_k = ka->params.rho[ktype][1];
       flt_t rho_j = ka->params.rho[jtype][1];
       flt_t lamdajik = 4 * itype * ((rho_k - rikmag) - (rho_j - rijmag));
-      flt_t ex_lam = exp(lamdajik);
+      flt_t ex_lam = overloaded::exp(lamdajik);
       flt_t rcminik = ka->params.rcmin[itype][ktype];
       flt_t rcmaxik = ka->params.rcmax[itype][ktype];
       flt_t dwik;
@@ -1603,9 +1602,6 @@ void ref_torsion_single_interaction(KernelArgsAIREBOT<flt_t,acc_t> * ka, int i,
   flt_t thmin = ka->params.thmin;
   flt_t thmax = ka->params.thmax;
   int itype = map[x[i].w];
-  flt_t xtmp = x[i].x;
-  flt_t ytmp = x[i].y;
-  flt_t ztmp = x[i].z;
   int * REBO_neighs_i = &ka->neigh_rebo.entries[ka->neigh_rebo.offset[i]];
   int jnum = ka->neigh_rebo.num[i];
   int jtype = map[x[j].w];
@@ -1968,7 +1964,7 @@ void ref_frebo_single_interaction(KernelArgsAIREBOT<flt_t,acc_t> * ka, int i,
   flt_t Aij = ka->params.A[itype][jtype];
   flt_t alphaij = ka->params.alpha[itype][jtype];
 
-  flt_t exp_alphar = exp(-alphaij * rij);
+  flt_t exp_alphar = overloaded::exp(-alphaij * rij);
   flt_t VR_by_wij = (1.0 + (Qij / rij)) * Aij * exp_alphar;
   flt_t VR = wij * VR_by_wij;
   flt_t pre = wij * Aij * exp_alphar;
@@ -2108,7 +2104,7 @@ void ref_lennard_jones_single_interaction(KernelArgsAIREBOT<flt_t,acc_t> * ka,
 
   flt_t vdw, dvdw;
   if (morseflag) {
-    const flt_t exr = exp(-rij * ka->params.lj4[itype][jtype]);
+    const flt_t exr = overloaded::exp(-rij * ka->params.lj4[itype][jtype]);
     vdw = ka->params.lj1[itype][jtype] * exr *
       (ka->params.lj2[itype][jtype]*exr - 2);
     dvdw = ka->params.lj3[itype][jtype] * exr *

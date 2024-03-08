@@ -1,7 +1,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS Development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -31,6 +31,7 @@ using ::testing::Eq;
 char *NCDUMP_EXECUTABLE = nullptr;
 bool verbose            = false;
 
+namespace LAMMPS_NS {
 class DumpNetCDFTest : public MeltTest {
     std::string dump_style = "netcdf";
 
@@ -109,10 +110,18 @@ TEST_F(DumpNetCDFTest, run0_plain)
         for (auto line = ++section; line < lines.end(); ++line) {
             auto words = utils::split_words(*line);
             if ((words.size() < 1) || (words[0] == "variables:")) break;
-            if (words[0] == "atom") ASSERT_THAT(words[2], Eq("32"));
-            if (words[0] == "label") ASSERT_THAT(words[2], Eq("10"));
-            if (words[0] == "Voigt") ASSERT_THAT(words[2], Eq("6"));
-            if (words[0] == "spatial") ASSERT_THAT(words[2], Eq("3"));
+            if (words[0] == "atom") {
+                ASSERT_THAT(words[2], Eq("32"));
+            }
+            if (words[0] == "label") {
+                ASSERT_THAT(words[2], Eq("10"));
+            }
+            if (words[0] == "Voigt") {
+                ASSERT_THAT(words[2], Eq("6"));
+            }
+            if (words[0] == "spatial") {
+                ASSERT_THAT(words[2], Eq("3"));
+            }
         }
 
         // check variables section
@@ -120,22 +129,54 @@ TEST_F(DumpNetCDFTest, run0_plain)
         for (auto line = ++section; line < lines.end(); ++line) {
             auto words = utils::split_words(*line);
             if ((words.size() < 2) || (words[0] == "data:")) break;
-            if (words[0] == "time:units") ASSERT_THAT(words[2], Eq("lj"));
-            if (words[0] == "time:scale_factor") ASSERT_THAT(words[2], Eq("0.005f"));
-            if (words[0] == "cell_origin:units") ASSERT_THAT(words[2], Eq("lj"));
-            if (words[0] == "cell_angles:units") ASSERT_THAT(words[2], Eq("degree"));
-            if (words[1] == "id(frame,") ASSERT_THAT(words[2], Eq("atom)"));
-            if (words[1] == "type(frame,") ASSERT_THAT(words[2], Eq("atom)"));
-            if (words[1] == "proc(frame,") ASSERT_THAT(words[2], Eq("atom)"));
-            if (words[1] == "procp1(frame,") ASSERT_THAT(words[2], Eq("atom)"));
-            if (words[1] == "mass(frame,") ASSERT_THAT(words[2], Eq("atom)"));
-            if (words[1] == "ix(frame,") ASSERT_THAT(words[2], Eq("atom)"));
-            if (words[1] == "iy(frame,") ASSERT_THAT(words[2], Eq("atom)"));
-            if (words[1] == "iz(frame,") ASSERT_THAT(words[2], Eq("atom)"));
-            if (words[0] == ":Conventions") ASSERT_THAT(words[2], Eq("AMBER"));
-            if (words[0] == ":ConventionVersion") ASSERT_THAT(words[2], Eq("1.0"));
-            if (words[0] == ":program") ASSERT_THAT(words[2], Eq("LAMMPS"));
-            if (words[0] == ":programVersion") ASSERT_THAT(words[2], Eq(LAMMPS_VERSION));
+            if (words[0] == "time:units") {
+                ASSERT_THAT(words[2], Eq("lj"));
+            }
+            if (words[0] == "time:scale_factor") {
+                ASSERT_THAT(words[2], Eq("0.005f"));
+            }
+            if (words[0] == "cell_origin:units") {
+                ASSERT_THAT(words[2], Eq("lj"));
+            }
+            if (words[0] == "cell_angles:units") {
+                ASSERT_THAT(words[2], Eq("degree"));
+            }
+            if (words[1] == "id(frame,") {
+                ASSERT_THAT(words[2], Eq("atom)"));
+            }
+            if (words[1] == "type(frame,") {
+                ASSERT_THAT(words[2], Eq("atom)"));
+            }
+            if (words[1] == "proc(frame,") {
+                ASSERT_THAT(words[2], Eq("atom)"));
+            }
+            if (words[1] == "procp1(frame,") {
+                ASSERT_THAT(words[2], Eq("atom)"));
+            }
+            if (words[1] == "mass(frame,") {
+                ASSERT_THAT(words[2], Eq("atom)"));
+            }
+            if (words[1] == "ix(frame,") {
+                ASSERT_THAT(words[2], Eq("atom)"));
+            }
+            if (words[1] == "iy(frame,") {
+                ASSERT_THAT(words[2], Eq("atom)"));
+            }
+            if (words[1] == "iz(frame,") {
+                ASSERT_THAT(words[2], Eq("atom)"));
+            }
+            if (words[0] == ":Conventions") {
+                ASSERT_THAT(words[2], Eq("AMBER"));
+            }
+            if (words[0] == ":ConventionVersion") {
+                ASSERT_THAT(words[2], Eq("1.0"));
+            }
+            if (words[0] == ":program") {
+                ASSERT_THAT(words[2], Eq("LAMMPS"));
+            }
+            if (words[0] == ":programVersion") {
+                ASSERT_THAT(words[2], Eq(LAMMPS_VERSION));
+            }
         }
 
         // check data section
@@ -143,8 +184,12 @@ TEST_F(DumpNetCDFTest, run0_plain)
         for (auto line = ++section; line < lines.end(); ++line) {
             auto words = utils::split_words(*line);
             if (words.size() > 0) {
-                if (words[0] == "spatial") ASSERT_THAT(words[2], Eq("xyz"));
-                if (words[0] == "cell_spatial") ASSERT_THAT(words[2], Eq("abc"));
+                if (words[0] == "spatial") {
+                    ASSERT_THAT(words[2], Eq("xyz"));
+                }
+                if (words[0] == "cell_spatial") {
+                    ASSERT_THAT(words[2], Eq("abc"));
+                }
                 if (words[0] == "cell_origin") {
                     ++line;
                     words = utils::split_words(*line);
@@ -259,10 +304,18 @@ TEST_F(DumpNetCDFTest, run0_mpi)
         for (auto line = ++section; line < lines.end(); ++line) {
             auto words = utils::split_words(*line);
             if ((words.size() < 1) || (words[0] == "variables:")) break;
-            if (words[0] == "atom") ASSERT_THAT(words[2], Eq("32"));
-            if (words[0] == "label") ASSERT_THAT(words[2], Eq("10"));
-            if (words[0] == "Voigt") ASSERT_THAT(words[2], Eq("6"));
-            if (words[0] == "spatial") ASSERT_THAT(words[2], Eq("3"));
+            if (words[0] == "atom") {
+                ASSERT_THAT(words[2], Eq("32"));
+            }
+            if (words[0] == "label") {
+                ASSERT_THAT(words[2], Eq("10"));
+            }
+            if (words[0] == "Voigt") {
+                ASSERT_THAT(words[2], Eq("6"));
+            }
+            if (words[0] == "spatial") {
+                ASSERT_THAT(words[2], Eq("3"));
+            }
         }
 
         // check variables section
@@ -270,22 +323,54 @@ TEST_F(DumpNetCDFTest, run0_mpi)
         for (auto line = ++section; line < lines.end(); ++line) {
             auto words = utils::split_words(*line);
             if ((words.size() < 2) || (words[0] == "data:")) break;
-            if (words[0] == "time:units") ASSERT_THAT(words[2], Eq("lj"));
-            if (words[0] == "time:scale_factor") ASSERT_THAT(words[2], Eq("0.005f"));
-            if (words[0] == "cell_origin:units") ASSERT_THAT(words[2], Eq("lj"));
-            if (words[0] == "cell_angles:units") ASSERT_THAT(words[2], Eq("degree"));
-            if (words[1] == "id(frame,") ASSERT_THAT(words[2], Eq("atom)"));
-            if (words[1] == "type(frame,") ASSERT_THAT(words[2], Eq("atom)"));
-            if (words[1] == "proc(frame,") ASSERT_THAT(words[2], Eq("atom)"));
-            if (words[1] == "procp1(frame,") ASSERT_THAT(words[2], Eq("atom)"));
-            if (words[1] == "mass(frame,") ASSERT_THAT(words[2], Eq("atom)"));
-            if (words[1] == "ix(frame,") ASSERT_THAT(words[2], Eq("atom)"));
-            if (words[1] == "iy(frame,") ASSERT_THAT(words[2], Eq("atom)"));
-            if (words[1] == "iz(frame,") ASSERT_THAT(words[2], Eq("atom)"));
-            if (words[0] == ":Conventions") ASSERT_THAT(words[2], Eq("AMBER"));
-            if (words[0] == ":ConventionVersion") ASSERT_THAT(words[2], Eq("1.0"));
-            if (words[0] == ":program") ASSERT_THAT(words[2], Eq("LAMMPS"));
-            if (words[0] == ":programVersion") ASSERT_THAT(words[2], Eq(LAMMPS_VERSION));
+            if (words[0] == "time:units") {
+                ASSERT_THAT(words[2], Eq("lj"));
+            }
+            if (words[0] == "time:scale_factor") {
+                ASSERT_THAT(words[2], Eq("0.005f"));
+            }
+            if (words[0] == "cell_origin:units") {
+                ASSERT_THAT(words[2], Eq("lj"));
+            }
+            if (words[0] == "cell_angles:units") {
+                ASSERT_THAT(words[2], Eq("degree"));
+            }
+            if (words[1] == "id(frame,") {
+                ASSERT_THAT(words[2], Eq("atom)"));
+            }
+            if (words[1] == "type(frame,") {
+                ASSERT_THAT(words[2], Eq("atom)"));
+            }
+            if (words[1] == "proc(frame,") {
+                ASSERT_THAT(words[2], Eq("atom)"));
+            }
+            if (words[1] == "procp1(frame,") {
+                ASSERT_THAT(words[2], Eq("atom)"));
+            }
+            if (words[1] == "mass(frame,") {
+                ASSERT_THAT(words[2], Eq("atom)"));
+            }
+            if (words[1] == "ix(frame,") {
+                ASSERT_THAT(words[2], Eq("atom)"));
+            }
+            if (words[1] == "iy(frame,") {
+                ASSERT_THAT(words[2], Eq("atom)"));
+            }
+            if (words[1] == "iz(frame,") {
+                ASSERT_THAT(words[2], Eq("atom)"));
+            }
+            if (words[0] == ":Conventions") {
+                ASSERT_THAT(words[2], Eq("AMBER"));
+            }
+            if (words[0] == ":ConventionVersion") {
+                ASSERT_THAT(words[2], Eq("1.0"));
+            }
+            if (words[0] == ":program") {
+                ASSERT_THAT(words[2], Eq("LAMMPS"));
+            }
+            if (words[0] == ":programVersion") {
+                ASSERT_THAT(words[2], Eq(LAMMPS_VERSION));
+            }
         }
 
         // check data section
@@ -293,8 +378,12 @@ TEST_F(DumpNetCDFTest, run0_mpi)
         for (auto line = ++section; line < lines.end(); ++line) {
             auto words = utils::split_words(*line);
             if (words.size() > 0) {
-                if (words[0] == "spatial") ASSERT_THAT(words[2], Eq("xyz"));
-                if (words[0] == "cell_spatial") ASSERT_THAT(words[2], Eq("abc"));
+                if (words[0] == "spatial") {
+                    ASSERT_THAT(words[2], Eq("xyz"));
+                }
+                if (words[0] == "cell_spatial") {
+                    ASSERT_THAT(words[2], Eq("abc"));
+                }
                 if (words[0] == "cell_origin") {
                     ++line;
                     words = utils::split_words(*line);
@@ -386,6 +475,7 @@ TEST_F(DumpNetCDFTest, run0_mpi)
     }
     delete_file(dump_file);
 }
+} // namespace LAMMPS_NS
 
 int main(int argc, char **argv)
 {
@@ -394,7 +484,7 @@ int main(int argc, char **argv)
 
     // handle arguments passed via environment variable
     if (const char *var = getenv("TEST_ARGS")) {
-        std::vector<std::string> env = utils::split_words(var);
+        std::vector<std::string> env = LAMMPS_NS::utils::split_words(var);
         for (auto arg : env) {
             if (arg == "-v") {
                 verbose = true;

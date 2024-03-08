@@ -1,7 +1,7 @@
 /* ----------------------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   Steve Plimpton, sjplimp@sandia.gov
+   LAMMPS development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -28,8 +28,6 @@
 #include "suffix.h"
 
 #include <cmath>
-
-#define MAXLINE 1024
 
 using namespace LAMMPS_NS;
 
@@ -136,6 +134,7 @@ void PairEAMGPU::compute(int eflag, int vflag)
     eam_gpu_compute_force(nullptr, eflag, vflag, eflag_atom, vflag_atom);
   else
     eam_gpu_compute_force(ilist, eflag, vflag, eflag_atom, vflag_atom);
+  if (atom->molecular != Atom::ATOMIC && neighbor->ago == 0) neighbor->build_topology();
 }
 
 /* ----------------------------------------------------------------------
